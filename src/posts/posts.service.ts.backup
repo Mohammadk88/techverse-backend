@@ -1,0 +1,215 @@
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { PrismaService } from '../database/prisma.service';
+import { CreatePostDto, UpdatePostDto, PostFilterDto } from './dto/post.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { UserRole, BookmarkType } from '@prisma/client';t { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { PrismaService } from '../database/prisma.service';
+import { CreatePostDto, UpdatePostDto, PostFilterDto } from './dto/post.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { UserRole } from '@prisma/client';
+
+@Injectable()
+export class PostsService {
+  constructor(private prisma: PrismaService) {}
+
+  async create(createPostDto: CreatePostDto, userId: number) {
+    const { cafes, tags, ...postData } = createPostDto;
+
+    const post = await this.prisma.post.create({
+      data: {
+        ...postData,
+        authorId: userId,
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            role: true,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+            reactions: true,
+            bookmarks: true,
+          },
+        },
+      },
+    });
+
+    return {
+      ...post,
+      commentsCount: post._count.comments,
+      reactionsCount: post._count.reactions,
+      bookmarksCount: post._count.bookmarks,
+    };
+  }
+
+  async findAll(paginationDto: PaginationDto, filters?: PostFilterDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      isPublic: filters?.isPublic !== undefined ? filters.isPublic : true,
+    };
+
+    if (filters?.type) {
+      where.type = filters.type;
+    }
+
+    const [posts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        include: {
+          author: {
+            select: {
+              id: true,
+              username: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              role: true,
+            },
+          },
+          _count: {
+            select: {
+              comments: true,
+              reactions: true,
+              bookmarks: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+
+    return {
+      data: posts.map(post => ({
+        ...post,
+        commentsCount: post._count.comments,
+        reactionsCount: post._count.reactions,
+        bookmarksCount: post._count.bookmarks,
+      })),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async findOne(id: number) {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            role: true,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+            reactions: true,
+            bookmarks: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    return {
+      ...post,
+      commentsCount: post._count.comments,
+      reactionsCount: post._count.reactions,
+      bookmarksCount: post._count.bookmarks,
+    };
+  }
+
+  async update(id: number, updatePostDto: UpdatePostDto, user: { id: number; role: UserRole }) {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      select: { authorId: true },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    if (post.authorId !== user.id && user.role !== UserRole.BARISTA) {
+      throw new ForbiddenException('You can only edit your own posts');
+    }
+
+    const { cafes, tags, ...postData } = updatePostDto;
+
+    const updatedPost = await this.prisma.post.update({
+      where: { id },
+      data: postData,
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            role: true,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+            reactions: true,
+            bookmarks: true,
+          },
+        },
+      },
+    });
+
+    return {
+      ...updatedPost,
+      commentsCount: updatedPost._count.comments,
+      reactionsCount: updatedPost._count.reactions,
+      bookmarksCount: updatedPost._count.bookmarks,
+    };
+  }
+
+  async remove(id: number, user: { id: number; role: UserRole }) {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      select: { authorId: true },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    if (post.authorId !== user.id && user.role !== UserRole.BARISTA) {
+      throw new ForbiddenException('You can only delete your own posts');
+    }
+
+    await this.prisma.post.delete({
+      where: { id },
+    });
+
+    return { message: 'Post deleted successfully' };
+  }
+}

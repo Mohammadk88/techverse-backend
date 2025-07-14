@@ -1,0 +1,718 @@
+// TechVerse Café Platform - Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Language and Country Tables
+model Language {
+  id          Int       @id @default(autoincrement())
+  name        String
+  nativeName  String    @map("native_name")
+  code        String    @unique
+  direction   String?   @default("ltr") // 'ltr' or 'rtl'
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  countries   Country[]
+  users       User[]
+  translations Translation[]
+  articles    Article[]
+  posts       Post[]
+  cafes       Cafe[]
+  playlists   Playlist[]
+  
+  @@map("languages")
+}
+
+model Country {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  code        String   @unique // e.g., TR, SA, US
+  languageId  Int      @map("language_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  language    Language @relation(fields: [languageId], references: [id])
+  cities      City[]
+  users       User[]
+  articles    Article[]
+  posts       Post[]
+  cafes       Cafe[]
+  playlists   Playlist[]
+  
+  @@map("countries")
+}
+
+model City {
+  id          Int      @id @default(autoincrement())
+  name        String
+  countryId   Int      @map("country_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  country     Country  @relation(fields: [countryId], references: [id])
+  users       User[]
+  
+  @@map("cities")
+}
+
+// User System
+enum UserRole {
+  GUEST
+  MEMBER
+  THINKER
+  JOURNALIST
+  BARISTA
+  
+  @@map("user_roles")
+}
+
+// Global Roles System
+model GlobalRole {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  // Relations
+  userRoles   UserGlobalRole[]
+  
+  @@map("global_roles")
+}
+
+model UserGlobalRole {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @map("user_id")
+  roleId    Int        @map("role_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  
+  // Relations
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      GlobalRole @relation(fields: [roleId], references: [id])
+  
+  @@unique([userId, roleId])
+  @@map("user_global_roles")
+}
+
+// Café Roles System
+model CafeRole {
+  id          Int            @id @default(autoincrement())
+  name        String         @unique
+  description String?
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  
+  // Relations
+  userCafeRoles UserCafeRole[]
+  
+  @@map("cafe_roles")
+}
+
+model UserCafeRole {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  cafeId    Int      @map("cafe_id")
+  roleId    Int      @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cafe      Cafe     @relation(fields: [cafeId], references: [id], onDelete: Cascade)
+  role      CafeRole @relation(fields: [roleId], references: [id])
+  
+  @@unique([userId, cafeId, roleId])
+  @@map("user_cafe_roles")
+}
+
+model User {
+  id          Int       @id @default(autoincrement())
+  email       String    @unique
+  password    String
+  firstName   String?   @map("first_name")
+  lastName    String?   @map("last_name")
+  username    String?   @unique
+  avatar      String?
+  bio         String?
+  role        UserRole  @default(GUEST)
+  xp          Int       @default(0)
+  languageId  Int?      @map("language_id")
+  countryId   Int?      @map("country_id")
+  cityId      Int?      @map("city_id")
+  isActive    Boolean   @default(true) @map("is_active")
+  emailVerified Boolean @default(false) @map("email_verified")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  language    Language? @relation(fields: [languageId], references: [id])
+  country     Country?  @relation(fields: [countryId], references: [id])
+  city        City?     @relation(fields: [cityId], references: [id])
+  
+  // Content Relations
+  articles        Article[]
+  posts           Post[]
+  comments        Comment[]
+  reactions       Reaction[]
+  bookmarks       Bookmark[]
+  forumQuestions  ForumQuestion[]
+  forumAnswers    ForumAnswer[]
+  forumVotes      ForumVote[]
+  episodeLikes    EpisodeLike[]
+  episodeComments EpisodeComment[]
+  
+  // Café Relations
+  ownedCafes      Cafe[]           @relation("CafeOwner")
+  cafeMembers     CafeMember[]
+  cafePosts       CafePost[]
+  
+  // Issue System Relations
+  createdIssues   Issue[]          @relation("IssueCreator")
+  solvedIssues    Issue[]          @relation("IssueSolver")
+  developerProfile DeveloperProfile?
+  
+  // Reports System
+  createdReports  Report[]
+  
+  // Role Relations
+  globalRoles     UserGlobalRole[]
+  cafeRoles       UserCafeRole[]
+  
+  // AI Relations
+  aiKeys          AIKey[]
+  
+  @@map("users")
+}
+
+// Articles System
+model ArticleCategory {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  articles    Article[]
+  
+  @@map("article_categories")
+}
+
+model ArticleTag {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  articles    ArticleTagRelation[]
+  
+  @@map("article_tags")
+}
+
+model Article {
+  id          Int       @id @default(autoincrement())
+  title       String
+  slug        String    @unique
+  content     String
+  excerpt     String?
+  featuredImage String? @map("featured_image")
+  categoryId  Int       @map("category_id")
+  authorId    Int       @map("author_id")
+  languageCode String?  @default("en") @map("language_code") // e.g., 'ar', 'en', 'fr'
+  countryCode String?   @map("country_code")  // e.g., 'SY', 'TR', 'SA'
+  isPublished Boolean   @default(false) @map("is_published")
+  publishedAt DateTime? @map("published_at")
+  scheduledFor DateTime? @map("scheduled_for")
+  isAI        Boolean   @default(false) @map("is_ai")
+  aiPrompt    String?   @map("ai_prompt")
+  featured    Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  category    ArticleCategory @relation(fields: [categoryId], references: [id])
+  author      User           @relation(fields: [authorId], references: [id])
+  language    Language?      @relation(fields: [languageCode], references: [code])
+  country     Country?       @relation(fields: [countryCode], references: [code])
+  tags        ArticleTagRelation[]
+  bookmarks   Bookmark[]
+  
+  @@index([languageCode])
+  @@index([countryCode])
+  @@index([languageCode, countryCode])
+  @@index([featured])
+  @@index([isPublished])
+  @@index([publishedAt])
+  @@map("articles")
+}
+
+model ArticleTagRelation {
+  id        Int         @id @default(autoincrement())
+  articleId Int         @map("article_id")
+  tagId     Int         @map("tag_id")
+  createdAt DateTime    @default(now()) @map("created_at")
+  
+  // Relations
+  article   Article     @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       ArticleTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@unique([articleId, tagId])
+  @@map("article_tag_relations")
+}
+
+// Community Posts System
+enum PostType {
+  TEXT
+  IMAGE
+  VIDEO
+  LINK
+  
+  @@map("post_types")
+}
+
+model Post {
+  id          Int       @id @default(autoincrement())
+  content     String
+  type        PostType  @default(TEXT)
+  mediaUrl    String?   @map("media_url")
+  linkUrl     String?   @map("link_url")
+  authorId    Int       @map("author_id")
+  isPublic    Boolean   @default(true) @map("is_public")
+  isPublished Boolean   @default(true) @map("is_published")
+  publishedAt DateTime? @map("published_at")
+  scheduledFor DateTime? @map("scheduled_for")
+  isAI        Boolean   @default(false) @map("is_ai")
+  aiPrompt    String?   @map("ai_prompt")
+  languageCode String?  @default("en") @map("language_code") // ISO 639-1 language code
+  countryCode String?   @map("country_code") // ISO 3166-1 alpha-2 country code
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  author      User       @relation(fields: [authorId], references: [id])
+  language    Language?  @relation(fields: [languageCode], references: [code])
+  country     Country?   @relation(fields: [countryCode], references: [code])
+  comments    Comment[]
+  reactions   Reaction[]
+  bookmarks   Bookmark[]
+  
+  @@index([languageCode])
+  @@index([countryCode])
+  @@index([languageCode, countryCode])
+  @@map("posts")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  authorId  Int      @map("author_id")
+  postId    Int?     @map("post_id")
+  parentId  Int?     @map("parent_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  author    User      @relation(fields: [authorId], references: [id])
+  post      Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  
+  @@map("comments")
+}
+
+enum ReactionType {
+  HEART
+  FIRE
+  LAUGH
+  CLAP
+  
+  @@map("reaction_types")
+}
+
+model Reaction {
+  id        Int          @id @default(autoincrement())
+  type      ReactionType
+  userId    Int          @map("user_id")
+  postId    Int          @map("post_id")
+  createdAt DateTime     @default(now()) @map("created_at")
+  
+  // Relations
+  user      User         @relation(fields: [userId], references: [id])
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, postId])
+  @@map("reactions")
+}
+
+// Bookmarks System
+enum BookmarkType {
+  ARTICLE
+  POST
+  
+  @@map("bookmark_types")
+}
+
+model Bookmark {
+  id        Int          @id @default(autoincrement())
+  type      BookmarkType
+  userId    Int          @map("user_id")
+  articleId Int?         @map("article_id")
+  postId    Int?         @map("post_id")
+  createdAt DateTime     @default(now()) @map("created_at")
+  
+  // Relations
+  user      User         @relation(fields: [userId], references: [id])
+  article   Article?     @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  post      Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  @@map("bookmarks")
+}
+
+// Cafés (Discussion Groups) System
+model Cafe {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  coverImage  String?   @map("cover_image")
+  ownerId     Int       @map("owner_id")
+  isPrivate   Boolean   @default(false) @map("is_private")
+  languageCode String?  @default("en") @map("language_code") // ISO 639-1 language code
+  countryCode String?   @map("country_code") // ISO 3166-1 alpha-2 country code
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  owner       User           @relation("CafeOwner", fields: [ownerId], references: [id])
+  language    Language?      @relation(fields: [languageCode], references: [code])
+  country     Country?       @relation(fields: [countryCode], references: [code])
+  members     CafeMember[]
+  posts       CafePost[]
+  userRoles   UserCafeRole[]
+  
+  @@index([languageCode])
+  @@index([countryCode])
+  @@index([languageCode, countryCode])
+  @@map("cafes")
+}
+
+model CafeMember {
+  id        Int      @id @default(autoincrement())
+  cafeId    Int      @map("cafe_id")
+  userId    Int      @map("user_id")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  
+  // Relations
+  cafe      Cafe     @relation(fields: [cafeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+  
+  @@unique([cafeId, userId])
+  @@map("cafe_members")
+}
+
+model CafePost {
+  id        Int      @id @default(autoincrement())
+  content   String
+  cafeId    Int      @map("cafe_id")
+  authorId  Int      @map("author_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  cafe      Cafe     @relation(fields: [cafeId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id])
+  
+  @@map("cafe_posts")
+}
+
+// Forum System (Q&A Style)
+model ForumCategory {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  questions   ForumQuestion[]
+  
+  @@map("forum_categories")
+}
+
+model ForumQuestion {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  categoryId  Int       @map("category_id")
+  authorId    Int       @map("author_id")
+  isResolved  Boolean   @default(false) @map("is_resolved")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  category    ForumCategory @relation(fields: [categoryId], references: [id])
+  author      User          @relation(fields: [authorId], references: [id])
+  answers     ForumAnswer[]
+  
+  @@map("forum_questions")
+}
+
+model ForumAnswer {
+  id          Int       @id @default(autoincrement())
+  content     String
+  questionId  Int       @map("question_id")
+  authorId    Int       @map("author_id")
+  isBestAnswer Boolean  @default(false) @map("is_best_answer")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  question    ForumQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  author      User          @relation(fields: [authorId], references: [id])
+  votes       ForumVote[]
+  
+  @@map("forum_answers")
+}
+
+model ForumVote {
+  id        Int         @id @default(autoincrement())
+  isUpvote  Boolean     @map("is_upvote")
+  userId    Int         @map("user_id")
+  answerId  Int         @map("answer_id")
+  createdAt DateTime    @default(now()) @map("created_at")
+  
+  // Relations
+  user      User        @relation(fields: [userId], references: [id])
+  answer    ForumAnswer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, answerId])
+  @@map("forum_votes")
+}
+
+// Events System (replaces Forum)
+model Event {
+  id         Int      @id @default(autoincrement())
+  title      String
+  host       String   // e.g., Google, Apple
+  startDate  DateTime @map("start_date")
+  endDate    DateTime @map("end_date")
+  details    String
+  link       String?  // link to event
+  mediaUrl   String?  @map("media_url") // image or video
+  result     String?  // summary or article
+  resultUrl  String?  @map("result_url") // link to full article or recap
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  
+  @@map("events")
+}
+
+// Issue System with Developer Ranking
+enum IssueStatus {
+  OPEN
+  ACTIVE
+  SOLVED
+  
+  @@map("issue_status")
+}
+
+model Issue {
+  id          Int         @id @default(autoincrement())
+  title       String
+  description String
+  status      IssueStatus @default(OPEN)
+  tags        String[]    @default([])
+  createdById Int         @map("created_by_id")
+  solvedById  Int?        @map("solved_by_id")
+  solvedAt    DateTime?   @map("solved_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  
+  // Relations
+  createdBy   User        @relation("IssueCreator", fields: [createdById], references: [id])
+  solvedBy    User?       @relation("IssueSolver", fields: [solvedById], references: [id])
+  
+  @@map("issues")
+}
+
+enum DeveloperRank {
+  BEGINNER
+  PROBLEM_SOLVER
+  EXPERT
+  CONSULTANT
+  
+  @@map("developer_ranks")
+}
+
+model DeveloperProfile {
+  id     Int           @id @default(autoincrement())
+  userId Int           @unique @map("user_id")
+  points Int           @default(0)
+  rank   DeveloperRank @default(BEGINNER)
+  
+  // Relations
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("developer_profiles")
+}
+
+// Report/Notification System
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  REJECTED
+  
+  @@map("report_status")
+}
+
+model Report {
+  id          Int          @id @default(autoincrement())
+  contentType String       @map("content_type") // article, post, cafe, etc
+  contentId   Int          @map("content_id")
+  reason      String
+  reportedById Int         @map("reported_by_id")
+  status      ReportStatus @default(PENDING)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  
+  // Relations
+  reportedBy  User         @relation(fields: [reportedById], references: [id])
+  
+  @@map("reports")
+}
+
+// Podcast System (TalkTech)
+model Playlist {
+  id          Int       @id @default(autoincrement())
+  title       String    @unique
+  description String?
+  coverImage  String?   @map("cover_image")
+  isPublic    Boolean   @default(true) @map("is_public")
+  languageCode String?  @default("en") @map("language_code") // ISO 639-1 language code
+  countryCode String?   @map("country_code") // ISO 3166-1 alpha-2 country code
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  language    Language? @relation(fields: [languageCode], references: [code])
+  country     Country?  @relation(fields: [countryCode], references: [code])
+  episodes    Episode[]
+  
+  @@index([languageCode])
+  @@index([countryCode])
+  @@index([languageCode, countryCode])
+  @@map("playlists")
+}
+
+model Episode {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  videoUrl    String    @map("video_url")
+  thumbnail   String?
+  duration    Int?      // in seconds
+  playlistId  Int       @map("playlist_id")
+  orderIndex  Int       @default(0) @map("order_index")
+  isPublished Boolean   @default(true) @map("is_published")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  playlist    Playlist        @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  likes       EpisodeLike[]
+  comments    EpisodeComment[]
+  
+  @@map("episodes")
+}
+
+model EpisodeLike {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  episodeId Int      @map("episode_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, episodeId])
+  @@map("episode_likes")
+}
+
+model EpisodeComment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  userId    Int      @map("user_id")
+  episodeId Int      @map("episode_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  
+  @@map("episode_comments")
+}
+
+// Translations System
+model Translation {
+  id        Int      @id @default(autoincrement())
+  key       String
+  langCode  String   @map("lang_code")
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  language  Language @relation(fields: [langCode], references: [code])
+  
+  @@unique([key, langCode])
+  @@map("translations")
+}
+
+// AI Provider System
+model AIProvider {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique     // openai, gemini, claude
+  label     String                // Display name
+  isActive  Boolean   @default(true) @map("is_active")
+  isDefault Boolean   @default(false) @map("is_default")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  keys      AIKey[]
+  
+  @@map("ai_providers")
+}
+
+model AIKey {
+  id         Int        @id @default(autoincrement())
+  userId     Int?       @map("user_id")     // null = system-level key
+  providerId Int        @map("provider_id")
+  keyName    String?    @map("key_name")    // user-friendly name for the key
+  secretKey  String     @map("secret_key")  // store as encrypted
+  isActive   Boolean    @default(true) @map("is_active")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+  
+  // Relations
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   AIProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, providerId]) // One key per user per provider
+  @@map("ai_keys")
+}
