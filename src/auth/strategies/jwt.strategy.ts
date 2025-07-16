@@ -3,7 +3,6 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
-import { Request } from 'express';
 
 export interface JwtPayload {
   sub: number;
@@ -23,12 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     super({
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        (request: Request) => {
-          // Extract token from X-HTTP-TOKEN header
-          return request?.headers?.['x-http-token'] as string;
-        },
-      ]),
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: secret,
     });
@@ -55,7 +49,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
 
       return user;
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid token');
     }
   }

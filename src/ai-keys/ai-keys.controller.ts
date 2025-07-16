@@ -31,7 +31,7 @@ import {
   AIProviderResponseDto,
 } from './dto/ai-key.dto';
 
-@ApiTags('AI Keys')
+@ApiTags('🤖 AI')
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()

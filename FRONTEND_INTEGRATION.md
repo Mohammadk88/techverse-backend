@@ -108,21 +108,9 @@ const articles = await fetch(
 );
 ```
 
-#### Posts (Social Feed)
-```javascript
-// Create post
-const post = await fetch(`${API_CONFIG.baseURL}/posts`, {
-  method: 'POST',
-  headers: API_CONFIG.headers,
-  body: JSON.stringify({
-    content: 'My thoughts on the latest tech trends...',
-    type: 'TEXT'
-  })
-});
+#### Posts (Social Feed) - ⚠️ REMOVED
 
-// Get posts feed
-const posts = await fetch(`${API_CONFIG.baseURL}/posts?page=1&limit=20`);
-```
+**Note:** The Posts system has been removed as part of the deferred systems cleanup. Please use Café Posts for community discussions instead.
 
 ### Community Features
 
@@ -147,34 +135,70 @@ const cafePost = await fetch(`${API_CONFIG.baseURL}/cafes/1/posts`, {
 });
 ```
 
-#### Forums
+#### Wallet System
 ```javascript
-// Get forums
-const forums = await fetch(`${API_CONFIG.baseURL}/forums`);
+// Get wallet information
+const wallet = await fetch(`${API_CONFIG.baseURL}/wallet`, {
+  headers: API_CONFIG.headers
+});
 
-// Join forum
-const joinForum = await fetch(`${API_CONFIG.baseURL}/forums/1/join`, {
+// Buy TechCoin
+const buyCoins = await fetch(`${API_CONFIG.baseURL}/wallet/buy`, {
   method: 'POST',
+  headers: API_CONFIG.headers,
+  body: JSON.stringify({
+    amount: 100,
+    paymentMethod: 'stripe_mock'
+  })
+});
+
+// Get transaction history
+const transactions = await fetch(`${API_CONFIG.baseURL}/wallet/transactions`, {
   headers: API_CONFIG.headers
 });
 ```
 
-### Media Features
-
-#### Podcasts
+#### Challenges
 ```javascript
-// Get podcast playlists
-const playlists = await fetch(`${API_CONFIG.baseURL}/podcasts/playlists`);
+// Get all challenges
+const challenges = await fetch(`${API_CONFIG.baseURL}/challenges`);
 
-// Get episodes
-const episodes = await fetch(`${API_CONFIG.baseURL}/podcasts/episodes`);
-
-// Like an episode
-const likeEpisode = await fetch(`${API_CONFIG.baseURL}/podcasts/episodes/1/like`, {
+// Join challenge
+const joinChallenge = await fetch(`${API_CONFIG.baseURL}/challenges/1/join`, {
   method: 'POST',
-  headers: API_CONFIG.headers
+  headers: API_CONFIG.headers,
+  body: JSON.stringify({
+    message: 'I want to participate!'
+  })
 });
 ```
+
+#### Projects & Tasks
+```javascript
+// Get all projects
+const projects = await fetch(`${API_CONFIG.baseURL}/projects`);
+
+// Create project
+const createProject = await fetch(`${API_CONFIG.baseURL}/projects`, {
+  method: 'POST',
+  headers: API_CONFIG.headers,
+  body: JSON.stringify({
+    title: 'My Project',
+    description: 'Project description...'
+  })
+});
+
+// Apply to task
+const applyTask = await fetch(`${API_CONFIG.baseURL}/projects/tasks/1/apply`, {
+  method: 'POST',
+  headers: API_CONFIG.headers,
+  body: JSON.stringify({
+    message: 'I have the required skills...'
+  })
+});
+```
+
+### Content Features
 
 #### Bookmarks
 ```javascript

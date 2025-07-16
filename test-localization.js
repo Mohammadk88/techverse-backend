@@ -42,9 +42,9 @@ const testScenarios = [
     endpoint: '/cafes'
   },
   {
-    name: 'Forums with Localization',
+    name: 'Projects with Localization',
     languageCode: 'tr',
-    endpoint: '/forum'
+    endpoint: '/projects'
   }
 ];
 
@@ -192,7 +192,7 @@ async function main() {
   console.log('✓ Content filtered by language and country codes');
   console.log('✓ Prioritization: exact match > language match > fallback');
   console.log('✓ Default fallback to English content');
-  console.log('✓ Works across all content types (articles, posts, cafes, forums)');
+  console.log('✓ Works across all content types (articles, posts, cafes, projects)');
 }
 
 if (require.main === module) {

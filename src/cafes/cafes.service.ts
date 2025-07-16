@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { WalletService } from '../wallet/wallet.service';
 import { CreateCafeDto, UpdateCafeDto, CreateCafePostDto, UpdateCafePostDto, CafeFilterDto } from './dto/cafe.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { UserRole } from '@prisma/client';
@@ -7,13 +8,28 @@ import { ContentQueryService } from '../common/services/content-query.service';
 
 @Injectable()
 export class CafesService {
+  private readonly CAFE_CREATION_COST = 50; // TechCoin cost to create a cafe
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly contentQueryService: ContentQueryService,
+    private readonly walletService: WalletService,
   ) {}
 
   // Cafe Management
   async create(createCafeDto: CreateCafeDto, ownerId: number) {
+    // Check if user has enough TechCoin
+    const hasEnough = await this.walletService.hasEnoughTechCoin(
+      ownerId,
+      this.CAFE_CREATION_COST,
+    );
+
+    if (!hasEnough) {
+      throw new BadRequestException(
+        `Insufficient TechCoin. Need ${this.CAFE_CREATION_COST} TechCoin to create a cafe.`,
+      );
+    }
+
     // Generate slug from name
     const slug = this.generateSlug(createCafeDto.name);
     
@@ -25,6 +41,12 @@ export class CafesService {
     if (existingCafe) {
       throw new BadRequestException('A cafe with this name already exists');
     }
+
+    // Deduct TechCoin for cafe creation
+    await this.walletService.spendTechCoin(ownerId, {
+      amount: this.CAFE_CREATION_COST,
+      description: `Created cafe: ${createCafeDto.name}`,
+    });
 
     const cafe = await this.prisma.cafe.create({
       data: {

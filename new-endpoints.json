@@ -1,0 +1,640 @@
+{
+  "paths": {
+    "/events": {
+      "post": {
+        "operationId": "EventsController_create",
+        "summary": "Create a new event",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Event created successfully"
+          }
+        },
+        "tags": ["events"]
+      },
+      "get": {
+        "operationId": "EventsController_findAll",
+        "summary": "Get all events",
+        "parameters": [
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Number of events to skip",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Number of events to take",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns all events"
+          }
+        },
+        "tags": ["events"]
+      }
+    },
+    "/events/upcoming": {
+      "get": {
+        "operationId": "EventsController_findUpcoming",
+        "summary": "Get upcoming events",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns upcoming events"
+          }
+        },
+        "tags": ["events"]
+      }
+    },
+    "/events/date-range": {
+      "get": {
+        "operationId": "EventsController_findByDateRange",
+        "summary": "Get events by date range",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "description": "Start date for event range",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "description": "End date for event range",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns events in date range"
+          }
+        },
+        "tags": ["events"]
+      }
+    },
+    "/events/{id}": {
+      "get": {
+        "operationId": "EventsController_findOne",
+        "summary": "Get event by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns specific event"
+          }
+        },
+        "tags": ["events"]
+      },
+      "patch": {
+        "operationId": "EventsController_update",
+        "summary": "Update event",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event updated successfully"
+          }
+        },
+        "tags": ["events"]
+      },
+      "delete": {
+        "operationId": "EventsController_remove",
+        "summary": "Delete event",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event deleted successfully"
+          }
+        },
+        "tags": ["events"]
+      }
+    },
+    "/issues": {
+      "post": {
+        "operationId": "IssuesController_create",
+        "summary": "Create a new issue",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Issue created successfully"
+          }
+        },
+        "tags": ["issues"]
+      },
+      "get": {
+        "operationId": "IssuesController_findAll",
+        "summary": "Get all issues",
+        "parameters": [
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Number of issues to skip",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Number of issues to take",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by issue status",
+            "schema": {
+              "enum": ["OPEN", "IN_PROGRESS", "SOLVED", "CLOSED"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns all issues"
+          }
+        },
+        "tags": ["issues"]
+      }
+    },
+    "/issues/rankings": {
+      "get": {
+        "operationId": "IssuesController_getDeveloperRankings",
+        "summary": "Get developer rankings",
+        "parameters": [
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Number of rankings to return",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns developer rankings by solved issues"
+          }
+        },
+        "tags": ["issues"]
+      }
+    },
+    "/issues/creator/{creatorId}": {
+      "get": {
+        "operationId": "IssuesController_findByCreator",
+        "summary": "Get issues by creator",
+        "parameters": [
+          {
+            "name": "creatorId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns issues created by user"
+          }
+        },
+        "tags": ["issues"]
+      }
+    },
+    "/issues/solver/{solverId}": {
+      "get": {
+        "operationId": "IssuesController_findBySolver",
+        "summary": "Get issues by solver",
+        "parameters": [
+          {
+            "name": "solverId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns issues solved by user"
+          }
+        },
+        "tags": ["issues"]
+      }
+    },
+    "/issues/{id}": {
+      "get": {
+        "operationId": "IssuesController_findOne",
+        "summary": "Get issue by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns specific issue"
+          }
+        },
+        "tags": ["issues"]
+      },
+      "patch": {
+        "operationId": "IssuesController_update",
+        "summary": "Update issue",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Issue updated successfully"
+          }
+        },
+        "tags": ["issues"]
+      },
+      "delete": {
+        "operationId": "IssuesController_remove",
+        "summary": "Delete issue",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Issue deleted successfully"
+          }
+        },
+        "tags": ["issues"]
+      }
+    },
+    "/issues/{id}/solve": {
+      "patch": {
+        "operationId": "IssuesController_markAsSolved",
+        "summary": "Mark issue as solved",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "solverId": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Issue marked as solved successfully"
+          }
+        },
+        "tags": ["issues"]
+      }
+    },
+    "/reports": {
+      "post": {
+        "operationId": "ReportsController_create",
+        "summary": "Create a new report",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Report created successfully"
+          }
+        },
+        "tags": ["reports"]
+      },
+      "get": {
+        "operationId": "ReportsController_findAll",
+        "summary": "Get all reports",
+        "parameters": [
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Number of reports to skip",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Number of reports to take",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by report status",
+            "schema": {
+              "enum": ["PENDING", "REVIEWING", "RESOLVED", "DISMISSED"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns all reports"
+          }
+        },
+        "tags": ["reports"]
+      }
+    },
+    "/reports/stats": {
+      "get": {
+        "operationId": "ReportsController_getReportStats",
+        "summary": "Get report statistics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns report statistics"
+          }
+        },
+        "tags": ["reports"]
+      }
+    },
+    "/reports/content-type/{contentType}": {
+      "get": {
+        "operationId": "ReportsController_findByContentType",
+        "summary": "Get reports by content type",
+        "parameters": [
+          {
+            "name": "contentType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns reports for specific content type"
+          }
+        },
+        "tags": ["reports"]
+      }
+    },
+    "/reports/reporter/{reporterId}": {
+      "get": {
+        "operationId": "ReportsController_findByReporter",
+        "summary": "Get reports by reporter",
+        "parameters": [
+          {
+            "name": "reporterId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns reports from specific reporter"
+          }
+        },
+        "tags": ["reports"]
+      }
+    },
+    "/reports/{id}": {
+      "get": {
+        "operationId": "ReportsController_findOne",
+        "summary": "Get report by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns specific report"
+          }
+        },
+        "tags": ["reports"]
+      },
+      "patch": {
+        "operationId": "ReportsController_update",
+        "summary": "Update report",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Report updated successfully"
+          }
+        },
+        "tags": ["reports"]
+      },
+      "delete": {
+        "operationId": "ReportsController_remove",
+        "summary": "Delete report",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report deleted successfully"
+          }
+        },
+        "tags": ["reports"]
+      }
+    },
+    "/reports/{id}/status": {
+      "patch": {
+        "operationId": "ReportsController_updateStatus",
+        "summary": "Update report status",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "enum": ["PENDING", "REVIEWING", "RESOLVED", "DISMISSED"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Report status updated successfully"
+          }
+        },
+        "tags": ["reports"]
+      }
+    }
+  }
+}

@@ -19,7 +19,7 @@ class RescheduleDto {
   newScheduleTime: string; // ISO date string
 }
 
-@ApiTags('Scheduler')
+@ApiTags('⚙️ System')
 @ApiBearerAuth()
 @Controller('scheduler')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -43,7 +43,7 @@ export class SchedulerController {
   @ApiOperation({ summary: 'Get all scheduled content' })
   @ApiResponse({
     status: 200,
-    description: 'List of scheduled articles and posts',
+    description: 'List of scheduled articles',
   })
   @Roles(UserRole.BARISTA, UserRole.JOURNALIST, UserRole.THINKER, UserRole.MEMBER) // Added MEMBER for testing
   async getScheduledContent() {
@@ -70,26 +70,6 @@ export class SchedulerController {
     return { message: 'Article rescheduled successfully' };
   }
 
-  @Post('posts/:id/reschedule')
-  @ApiOperation({ summary: 'Reschedule a post' })
-  @ApiResponse({
-    status: 200,
-    description: 'Post rescheduled successfully',
-  })
-  @Roles(UserRole.BARISTA, UserRole.JOURNALIST)
-  async reschedulePost(
-    @Param('id') id: string,
-    @Body() rescheduleDto: RescheduleDto,
-  ): Promise<{ message: string }> {
-    const newScheduleTime = new Date(rescheduleDto.newScheduleTime);
-    await this.schedulerService.rescheduleContent(
-      'post',
-      parseInt(id),
-      newScheduleTime,
-    );
-    return { message: 'Post rescheduled successfully' };
-  }
-
   @Delete('articles/:id/schedule')
   @ApiOperation({ summary: 'Cancel scheduled article' })
   @ApiResponse({
@@ -102,19 +82,5 @@ export class SchedulerController {
   ): Promise<{ message: string }> {
     await this.schedulerService.cancelScheduledContent('article', parseInt(id));
     return { message: 'Article schedule cancelled successfully' };
-  }
-
-  @Delete('posts/:id/schedule')
-  @ApiOperation({ summary: 'Cancel scheduled post' })
-  @ApiResponse({
-    status: 200,
-    description: 'Post schedule cancelled successfully',
-  })
-  @Roles(UserRole.BARISTA, UserRole.JOURNALIST)
-  async cancelPostSchedule(
-    @Param('id') id: string,
-  ): Promise<{ message: string }> {
-    await this.schedulerService.cancelScheduledContent('post', parseInt(id));
-    return { message: 'Post schedule cancelled successfully' };
   }
 }

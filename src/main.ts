@@ -27,16 +27,21 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('TechVerse Café API')
     .setDescription(
-      `Backend API for TechVerse Café - A multilingual tech and media social platform
+      `Backend API for TechVerse Café MVP - A tech community platform with digital economy
 
-## Features
-- 🔐 JWT Authentication & Role-based Access Control
-- 🌍 Multi-language Support (Languages, Countries, Cities)
-- 📝 Content Management (Articles, Posts, Forums)
-- ☕ Community Management (Cafés - Discussion Groups)
-- 🎧 Podcast System (TalkTech Episodes & Playlists)
+## 🚀 New Features in MVP
+- � **Digital Wallet & TechCoin System**: Earn, buy, and spend TechCoin
+- � **Challenges & Competitions**: Community challenges with rewards
+- �️ **Enhanced Projects System**: Task management with payments
+- 🌍 **Multi-language Support**: Localized content and UI
+- ☕ **Café Communities**: Topic-based discussion groups
+
+## Core Features
+- � JWT Authentication & Role-based Access Control
+- 📝 Content Management (Articles, Posts)
 - 🔖 Bookmarking System
 - 👥 User Profiles & Social Features
+- 🤖 AI Integration for content generation
 
 ## Authentication
 Most endpoints require authentication using JWT tokens. Include the token in the \`X-HTTP-TOKEN\` header.
@@ -50,14 +55,15 @@ The platform uses a two-tier role system:
 1. Register a new user account
 2. Login to receive JWT token
 3. Use the token in \`X-HTTP-TOKEN\` header for authenticated requests
-4. Explore the community features and create content
+4. Create your wallet and start earning TechCoin
+5. Join challenges and participate in projects
 
 ## Download API Specification
 - JSON Format: [/api/swagger.json](/api/swagger.json)
 - YAML Format: [/api/swagger.yaml](/api/swagger.yaml)
       `,
     )
-    .setVersion('1.0.0')
+    .setVersion('2.0.0')
     .setContact(
       'TechVerse Team',
       'https://techverse.cafe',
@@ -75,24 +81,27 @@ The platform uses a two-tier role system:
       },
       'X-HTTP-TOKEN',
     )
-    .addTag('Authentication', 'User authentication, registration, and profile management')
-    .addTag('Users', 'User management, profiles, and social features')
-    .addTag('Articles', 'Article creation, management, and publishing system')
-    .addTag('Posts', 'Community posts, social interactions, and discussions')
-    .addTag('Cafés', 'Discussion groups, communities, and café management')
-    .addTag('forums', 'Q&A forum, discussions, and community engagement')
-    .addTag('podcasts', 'TalkTech podcast episodes, playlists, and comments')
-    .addTag('bookmarks', 'User saved items and bookmark management')
-    .addTag('languages', 'Supported UI languages and internationalization')
-    .addTag('countries', 'Countries and cities data for user locations')
-    .addTag('roles', 'Role-based access control and permission management')
-    .addTag('examples', 'Example endpoints demonstrating role-based access control')
+    .addTag('🔐 Authentication', 'User authentication, registration, and profile management')
+    .addTag('👥 Users', 'User management, profiles, and social features')
+    .addTag('📝 Articles', 'Article creation, management, and publishing system')
+    .addTag('💬 Posts', 'Community posts, social interactions, and discussions')
+    .addTag('☕ Cafés', 'Discussion groups, communities, and café management')
+    .addTag('🛠️ Projects', 'Mini projects, tasks, and TechCoin payment system')
+    .addTag('💰 Digital Wallet & TechCoin', 'Wallet management, TechCoin transactions, and digital economy')
+    .addTag('🏆 Challenges & Competitions', 'Community challenges, competitions, and rewards system')
+    .addTag('🔖 Bookmarks', 'User saved items and bookmark management')
+    .addTag('🌍 Languages', 'Supported UI languages and internationalization')
+    .addTag('🗺️ Countries', 'Countries and cities data for user locations')
+    .addTag('🛡️ Roles', 'Role-based access control and permission management')
+    .addTag('🤖 AI', 'AI providers and intelligent content generation')
+    .addTag('⚙️ System', 'System utilities, scheduler, and administrative functions')
+    .addTag('📋 Examples', 'Example endpoints demonstrating role-based access control')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
   
   // Export Swagger JSON for frontend integration
-  const outputPath = path.resolve(process.cwd(), 'swagger-spec.json');
+  const outputPath = path.resolve(process.cwd(), 'swagger-export.json');
   fs.writeFileSync(outputPath, JSON.stringify(document, null, 2));
   console.log(`📄 Swagger JSON exported to: ${outputPath}`);
   

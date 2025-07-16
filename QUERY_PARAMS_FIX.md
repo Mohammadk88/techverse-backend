@@ -26,48 +26,27 @@ Fixed all API endpoint issues that returned `400 Bad Request` due to unknown or 
 - Boolean fields properly handle string-to-boolean conversion
 - Proper `@ApiPropertyOptional` decorators for Swagger documentation
 
-#### `src/posts/dto/post.dto.ts`
-**Added to PostFilterDto:**
-- `trending?: boolean` - Show trending posts only
-- `limit?: number` - Limit number of results
-
-**Transformations Added:**
-- All boolean fields handle string inputs properly
-- Consistent validation patterns across the DTO
-
-#### `src/forum/dto/forum.dto.ts`
-**Added to ForumFilterDto:**
-- `popular?: boolean` - Show popular forums only
-- `featured?: boolean` - Show featured forums only
-
-**Improvements:**
-- Updated `@ApiPropertyOptional` usage for better documentation
-- Consistent boolean transformation patterns
-
-#### `src/podcast/dto/podcast.dto.ts`
-**Fixed existing transformations:**
-- Updated boolean transformations to handle both string and boolean inputs
-- Consistent pattern: `@Transform(({ value }) => value === 'true' || value === true)`
+**Note:** Posts, Forum, and Podcast modules have been removed as part of the deferred systems cleanup.
 
 ### 2. Updated Controllers with @ApiQuery Decorators
 
 #### `src/articles/articles.controller.ts`
+
 **Added @ApiQuery decorators for:**
+
 - `featured` (Boolean)
 - `thisWeek` (Boolean)
 - All existing parameters properly documented
 
-#### `src/posts/posts.controller.ts`
-**Added @ApiQuery decorators for:**
-- `trending` (Boolean)
-- `limit` (Number)
-- `cafeId`, `tagId`, `type`, `isPublic`, `isPublished` (existing parameters)
-
 #### `src/cafes/cafes.controller.ts`
+
 **Added @ApiQuery decorators for:**
+
 - `popular` (Boolean)
 - `limit` (Number)
 - `search`, `isPrivate` (existing parameters)
+
+**Note:** Posts and Forum controllers have been removed as part of the deferred systems cleanup.
 
 ### 3. Validation Configuration
 The existing ValidationPipe configuration in `main.ts` is properly set up with:
@@ -84,12 +63,15 @@ app.useGlobalPipes(
 ## 🧪 Testing
 
 ### Test Script Created: `test-query-params.js`
+
 Comprehensive test script to verify:
+
 - ✅ `GET /articles?featured=true&limit=6`
 - ✅ `GET /articles?thisWeek=true&limit=8`
-- ✅ `GET /posts?trending=true&limit=10`
 - ✅ `GET /cafes?popular=true&limit=8`
 - ✅ Rejection of invalid parameters with 400 Bad Request
+
+**Note:** Posts and Forum endpoints removed as part of deferred systems cleanup.
 
 ### Usage:
 ```bash
@@ -131,21 +113,17 @@ limit?: number;
 ## 📋 Endpoints Now Supporting Additional Parameters
 
 ### Articles (Public - No Auth Required)
+
 - `GET /articles?featured=true&limit=6` ✅
 - `GET /articles?thisWeek=true&limit=8` ✅
 - `GET /articles?categoryId=1&tagId=2&search=nest&isPublished=true` ✅
 
-### Posts (Auth Required)
-- `GET /posts?trending=true&limit=10` ✅
-- `GET /posts?cafeId=1&isPublic=true&isPublished=true` ✅
-
 ### Cafes (Auth Required)
+
 - `GET /cafes?popular=true&limit=8` ✅
 - `GET /cafes?search=javascript&isPrivate=false` ✅
 
-### Forums (Auth Required)
-- `GET /forums?popular=true&featured=true&limit=10` ✅
-- `GET /forums?search=discussion&isPublic=true` ✅
+**Note:** Posts and Forums endpoints have been removed as part of the deferred systems cleanup.
 
 ## 🚀 Ready for Frontend Integration
 

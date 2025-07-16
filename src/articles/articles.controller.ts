@@ -29,11 +29,12 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { User } from '../common/decorators/current-user.decorator';
 import { Roles, UserRole } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AIService } from '../ai/ai.service';
 
-@ApiTags('Articles')
+@ApiTags('📝 Articles')
 @ApiSecurity('X-HTTP-TOKEN')
 @UseGuards(JwtAuthGuard)
 @Controller('articles')
@@ -126,12 +127,29 @@ export class ArticlesController {
     status: 200,
     description: 'Article deleted successfully',
   })
+    @UseGuards(RolesGuard)
+  @Roles(UserRole.JOURNALIST, UserRole.BARISTA)
   @Delete(':id')
-  async remove(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: { id: number; role: UserRole },
-  ) {
-    return this.articlesService.remove(id, user.id, user.role);
+  async deleteArticle(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.articlesService.remove(+id, user.id, user.role);
+  }
+
+  @ApiOperation({ summary: 'Bookmark an article' })
+  @ApiResponse({
+    status: 201,
+    description: 'Article bookmarked successfully',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Article already bookmarked',
+  })
+  @Post(':id/bookmark')
+  async bookmarkArticle(@Param('id') id: string, @CurrentUser() user: { id: number }) {
+    // This will be handled by BookmarksService
+    const bookmarksService = new (await import('../bookmarks/bookmarks.service')).BookmarksService(
+      this.articlesService['prisma']
+    );
+    return bookmarksService.createBookmark(user.id, { articleId: +id });
   }
 
   // Category endpoints
@@ -210,5 +228,128 @@ export class ArticlesController {
     return {
       suggestions: await this.aiService.generateContentSuggestions('article', category),
     };
+  }
+
+  // =======================================================
+  // ARTICLE SCHEDULING ENDPOINTS
+  // =======================================================
+
+  @ApiOperation({ summary: 'Schedule article for future publishing' })
+  @ApiResponse({
+    status: 201,
+    description: 'Article scheduled successfully',
+  })
+  @Post(':id/schedule')
+  async scheduleArticle(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() scheduleDto: any,
+    @CurrentUser() user: { id: number },
+  ) {
+    return this.articlesService.scheduleArticle(id, scheduleDto, user.id);
+  }
+
+  @ApiOperation({ summary: 'Get user scheduled posts' })
+  @ApiResponse({
+    status: 200,
+    description: 'Scheduled posts retrieved successfully',
+  })
+  @Get('scheduled')
+  async getScheduledPosts(@CurrentUser() user: { id: number }) {
+    return this.articlesService.getScheduledPosts(user.id);
+  }
+
+  @ApiOperation({ summary: 'Cancel scheduled post' })
+  @ApiResponse({
+    status: 200,
+    description: 'Scheduled post canceled successfully',
+  })
+  @Delete('scheduled/:scheduleId')
+  async cancelScheduledPost(
+    @Param('scheduleId', ParseIntPipe) scheduleId: number,
+    @CurrentUser() user: { id: number },
+  ) {
+    return this.articlesService.cancelScheduledPost(scheduleId, user.id);
+  }
+
+  // =======================================================
+  // ARTICLE BOOSTING ENDPOINTS
+  // =======================================================
+
+  @ApiOperation({ summary: 'Boost article visibility with TechCoin' })
+  @ApiResponse({
+    status: 201,
+    description: 'Article boosted successfully',
+  })
+  @Post(':id/boost')
+  async boostArticle(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() boostDto: any,
+    @CurrentUser() user: { id: number },
+  ) {
+    return this.articlesService.boostArticle(id, boostDto, user.id);
+  }
+
+  @ApiOperation({ summary: 'Get article boosts' })
+  @ApiResponse({
+    status: 200,
+    description: 'Article boosts retrieved successfully',
+  })
+  @Get(':id/boosts')
+  async getArticleBoosts(@Param('id', ParseIntPipe) id: number) {
+    return this.articlesService.getArticleBoosts(id);
+  }
+
+  @ApiOperation({ summary: 'Get user boosts' })
+  @ApiResponse({
+    status: 200,
+    description: 'User boosts retrieved successfully',
+  })
+  @Get('boosts/my')
+  async getUserBoosts(@CurrentUser() user: { id: number }) {
+    return this.articlesService.getUserBoosts(user.id);
+  }
+
+  // =======================================================
+  // AI ENHANCEMENT ENDPOINTS
+  // =======================================================
+
+  @ApiOperation({ summary: 'Enhance article with AI' })
+  @ApiResponse({
+    status: 201,
+    description: 'Article enhanced with AI successfully',
+  })
+  @Post(':id/enhance')
+  async enhanceArticleWithAI(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() enhanceDto: any,
+    @CurrentUser() user: { id: number },
+  ) {
+    return this.articlesService.enhanceArticleWithAI(id, enhanceDto, user.id);
+  }
+
+  @ApiOperation({ summary: 'Apply AI enhancement to article' })
+  @ApiResponse({
+    status: 200,
+    description: 'AI enhancement applied successfully',
+  })
+  @Post('enhancements/:enhancementId/apply')
+  async applyAIEnhancement(
+    @Param('enhancementId', ParseIntPipe) enhancementId: number,
+    @CurrentUser() user: { id: number },
+  ) {
+    return this.articlesService.applyAIEnhancement(enhancementId, user.id);
+  }
+
+  @ApiOperation({ summary: 'Get article AI enhancements' })
+  @ApiResponse({
+    status: 200,
+    description: 'Article enhancements retrieved successfully',
+  })
+  @Get(':id/enhancements')
+  async getArticleEnhancements(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: { id: number },
+  ) {
+    return this.articlesService.getArticleEnhancements(id, user.id);
   }
 }

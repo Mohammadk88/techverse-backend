@@ -1,165 +1,146 @@
-# TechVerse Backend - New Features API Test
+# TechVerse Backend - MVP Features API Test
 
-This document demonstrates the new features implemented for TechVerse backend:
+This document demonstrates the MVP features implemented for TechVerse backend:
 
-## 1. Events System (Replacing Forum)
+## 1. Wallet & TechCoin System
 
-### Get all events
+### Get wallet information
 ```bash
-curl -X GET "http://localhost:4040/events" \
+curl -X GET "http://localhost:4040/wallet" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-### Get upcoming events
+### Buy TechCoin
 ```bash
-curl -X GET "http://localhost:4040/events/upcoming" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-### Create a new event
-```bash
-curl -X POST "http://localhost:4040/events" \
+curl -X POST "http://localhost:4040/wallet/buy" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
-    "title": "React Conference 2024",
-    "host": "React Team",
-    "startDate": "2024-12-01T10:00:00Z",
-    "endDate": "2024-12-01T18:00:00Z",
-    "details": "Annual React conference with latest updates",
-    "link": "https://reactconf.com",
-    "mediaUrl": "https://example.com/event-banner.jpg"
+    "amount": 100,
+    "paymentMethod": "stripe_mock"
   }'
 ```
 
-## 2. Issues System with Developer Ranking
-
-### Get all issues
+### Get transaction history
 ```bash
-curl -X GET "http://localhost:4040/issues" \
+curl -X GET "http://localhost:4040/wallet/transactions?page=1&limit=10" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-### Get issues by status
+## 2. Challenges System
+
+### Get all challenges
 ```bash
-curl -X GET "http://localhost:4040/issues?status=OPEN" \
+curl -X GET "http://localhost:4040/challenges" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-### Create a new issue
+### Create a new challenge
 ```bash
-curl -X POST "http://localhost:4040/issues" \
+curl -X POST "http://localhost:4040/challenges" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
-    "title": "Bug in user authentication",
-    "description": "Users cannot login after password reset",
-    "tags": ["authentication", "bug", "urgent"],
-    "createdBy": {
-      "connect": { "id": 1 }
-    }
+    "title": "Code Master Challenge",
+    "description": "Build a web app using React and Node.js",
+    "reward": 100,
+    "entryFee": 25,
+    "type": "VOTE",
+    "startDate": "2025-07-20T00:00:00Z",
+    "endDate": "2025-07-27T23:59:59Z"
   }'
 ```
 
-### Mark issue as solved
+### Join a challenge
 ```bash
-curl -X PATCH "http://localhost:4040/issues/1/solve" \
+curl -X POST "http://localhost:4040/challenges/1/join" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
-    "solverId": 2
+    "message": "I want to participate in this challenge"
   }'
 ```
 
-### Get developer rankings
+## 3. Projects & Tasks System
+
+### Get all projects
 ```bash
-curl -X GET "http://localhost:4040/issues/rankings?take=10" \
+curl -X GET "http://localhost:4040/projects" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-## 3. Reports System for Content Moderation
-
-### Get all reports
+### Create a new project
 ```bash
-curl -X GET "http://localhost:4040/reports" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-### Get pending reports
-```bash
-curl -X GET "http://localhost:4040/reports?status=PENDING" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-### Create a new report
-```bash
-curl -X POST "http://localhost:4040/reports" \
+curl -X POST "http://localhost:4040/projects" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
-    "contentType": "POST",
-    "contentId": 1,
-    "reason": "Spam content",
-    "reportedBy": {
-      "connect": { "id": 1 }
-    }
+    "title": "TechVerse Mobile App",
+    "description": "React Native mobile application for TechVerse platform",
+    "isPublic": true
   }'
 ```
 
-### Update report status
+### Add task to project
 ```bash
-curl -X PATCH "http://localhost:4040/reports/1/status" \
+curl -X POST "http://localhost:4040/projects/1/tasks" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
-    "status": "REVIEWED"
+    "title": "Design login screen",
+    "description": "Create a modern login screen with animations",
+    "price": 50
   }'
 ```
 
-### Get report statistics
+### Apply to a task
 ```bash
-curl -X GET "http://localhost:4040/reports/stats" \
+curl -X POST "http://localhost:4040/projects/tasks/1/apply" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "message": "I have 3 years of React Native experience"
+  }'
+```
+
+### Get all tasks
+```bash
+curl -X GET "http://localhost:4040/projects/tasks/all" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-## 4. Seed Data
 
-The database has been populated with comprehensive seed data:
+## 4. Core Features
 
-- ✅ **Users**: 21 users (including 1 admin)
-- ✅ **Articles**: 50 articles with categories and tags
-- ✅ **Posts**: 100 posts with different types (text, image, video, link)
-- ✅ **Cafes**: 10 cafes with posts
-- ✅ **Playlists**: 6 podcast playlists with episodes
-- ✅ **Events**: 20 events with various dates and hosts
-- ✅ **Issues**: 30 issues with different statuses
-- ✅ **Developer Profiles**: Ranking system with points and ranks
-- ✅ **Reports**: 15 reports for content moderation
+The TechVerse platform includes these MVP features:
+
+- ✅ **Articles**: Content creation and management system
+- ✅ **Posts**: Community social posts and interactions  
+- ✅ **Cafes**: Discussion groups and communities
+- ✅ **Wallet**: TechCoin balance and transaction management
+- ✅ **Challenges**: Programming/design competitions
+- ✅ **Projects**: Task management and collaboration system
 
 ## Features Implemented
 
-### ✅ Database Schema Updates
-- Removed Forum, ForumMember, ForumTopic, ForumReply models
-- Added Event, Issue, DeveloperProfile, Report models
-- Added new enums: IssueStatus, DeveloperRank, ReportStatus
+### ✅ Database Schema
+- User wallet system with TechCoin and XP
+- Challenge creation and participation
+- Project and task management
+- Transaction history and payments
 
 ### ✅ API Endpoints
-- **Events**: Full CRUD operations, upcoming events, date range filtering
-- **Issues**: Full CRUD operations, status filtering, developer rankings, solve tracking
-- **Reports**: Full CRUD operations, status management, statistics, content type filtering
+- **Wallet**: Balance management, TechCoin purchases, transaction history
+- **Challenges**: Challenge creation, joining, submissions, voting
+- **Projects**: Project creation, task management, applications, assignments
 
 ### ✅ Business Logic
-- **Issue Solving**: Automatic point awarding and rank updates
-- **Developer Ranking**: BEGINNER → PROBLEM_SOLVER → EXPERT → CONSULTANT progression
-- **Report Management**: Content moderation workflow with status tracking
-
-### ✅ Seed Data Generation
-- Realistic data using Faker.js
-- Proper foreign key relationships
-- Comprehensive coverage of all content types
+- **TechCoin Economy**: Earning and spending mechanics
+- **Challenge System**: Entry fees, rewards, voting mechanism
+- **Task Management**: Application process, assignments, payments
 
 ## Next Steps
-1. Add authentication to test endpoints with real JWT tokens
-2. Implement frontend components for the new features
-3. Add real-time notifications for issue solving and report updates
-4. Implement advanced filtering and search capabilities
+1. Frontend integration with React Query for data fetching
+2. Stripe integration for TechCoin purchases
+3. Real-time notifications for challenges and task updates
+4. Advanced filtering and search capabilities

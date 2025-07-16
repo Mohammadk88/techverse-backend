@@ -24,9 +24,7 @@ model Language {
   users       User[]
   translations Translation[]
   articles    Article[]
-  posts       Post[]
   cafes       Cafe[]
-  playlists   Playlist[]
   
   @@map("languages")
 }
@@ -44,9 +42,7 @@ model Country {
   cities      City[]
   users       User[]
   articles    Article[]
-  posts       Post[]
   cafes       Cafe[]
-  playlists   Playlist[]
   
   @@map("countries")
 }
@@ -145,6 +141,7 @@ model User {
   bio         String?
   role        UserRole  @default(GUEST)
   xp          Int       @default(0)
+  techCoin    Int       @default(100) @map("tech_coin") // Starting balance
   languageId  Int?      @map("language_id")
   countryId   Int?      @map("country_id")
   cityId      Int?      @map("city_id")
@@ -160,28 +157,12 @@ model User {
   
   // Content Relations
   articles        Article[]
-  posts           Post[]
-  comments        Comment[]
-  reactions       Reaction[]
   bookmarks       Bookmark[]
-  forumQuestions  ForumQuestion[]
-  forumAnswers    ForumAnswer[]
-  forumVotes      ForumVote[]
-  episodeLikes    EpisodeLike[]
-  episodeComments EpisodeComment[]
   
   // Café Relations
   ownedCafes      Cafe[]           @relation("CafeOwner")
   cafeMembers     CafeMember[]
   cafePosts       CafePost[]
-  
-  // Issue System Relations
-  createdIssues   Issue[]          @relation("IssueCreator")
-  solvedIssues    Issue[]          @relation("IssueSolver")
-  developerProfile DeveloperProfile?
-  
-  // Reports System
-  createdReports  Report[]
   
   // Role Relations
   globalRoles     UserGlobalRole[]
@@ -189,6 +170,28 @@ model User {
   
   // AI Relations
   aiKeys          AIKey[]
+  
+  // Wallet Relations
+  wallet          Wallet?
+  walletTransactions WalletTransaction[]
+  
+  // Challenge Relations
+  createdChallenges Challenge[]      @relation("ChallengeCreator")
+  challengeParticipants ChallengeParticipant[]
+  
+  // Mini Projects Relations
+  ownedProjects   Project[]        @relation("ProjectOwner")
+  taskApplications TaskApplication[]
+  taskAssignments TaskAssignment[]
+  taskPayments    TaskPayment[]
+  
+  // Reactions Relations
+  reactions       Reaction[]
+  
+  // Article Enhancement Relations
+  scheduledPosts     ScheduledPost[]
+  articleBoosts      ArticleBoost[]
+  articleAIEnhancements ArticleAIEnhancement[]
   
   @@map("users")
 }
@@ -248,6 +251,10 @@ model Article {
   country     Country?       @relation(fields: [countryCode], references: [code])
   tags        ArticleTagRelation[]
   bookmarks   Bookmark[]
+  reactions   Reaction[]
+  scheduledPosts     ScheduledPost[]
+  boosts             ArticleBoost[]
+  aiEnhancements     ArticleAIEnhancement[]
   
   @@index([languageCode])
   @@index([countryCode])
@@ -272,113 +279,25 @@ model ArticleTagRelation {
   @@map("article_tag_relations")
 }
 
-// Community Posts System
-enum PostType {
-  TEXT
-  IMAGE
-  VIDEO
-  LINK
-  
-  @@map("post_types")
-}
+// Community Posts System - REMOVED (Future Development)
+// Note: Posts system will be implemented in future versions
 
-model Post {
-  id          Int       @id @default(autoincrement())
-  content     String
-  type        PostType  @default(TEXT)
-  mediaUrl    String?   @map("media_url")
-  linkUrl     String?   @map("link_url")
-  authorId    Int       @map("author_id")
-  isPublic    Boolean   @default(true) @map("is_public")
-  isPublished Boolean   @default(true) @map("is_published")
-  publishedAt DateTime? @map("published_at")
-  scheduledFor DateTime? @map("scheduled_for")
-  isAI        Boolean   @default(false) @map("is_ai")
-  aiPrompt    String?   @map("ai_prompt")
-  languageCode String?  @default("en") @map("language_code") // ISO 639-1 language code
-  countryCode String?   @map("country_code") // ISO 3166-1 alpha-2 country code
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  author      User       @relation(fields: [authorId], references: [id])
-  language    Language?  @relation(fields: [languageCode], references: [code])
-  country     Country?   @relation(fields: [countryCode], references: [code])
-  comments    Comment[]
-  reactions   Reaction[]
-  bookmarks   Bookmark[]
-  
-  @@index([languageCode])
-  @@index([countryCode])
-  @@index([languageCode, countryCode])
-  @@map("posts")
-}
-
-model Comment {
-  id        Int      @id @default(autoincrement())
-  content   String
-  authorId  Int      @map("author_id")
-  postId    Int?     @map("post_id")
-  parentId  Int?     @map("parent_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  author    User      @relation(fields: [authorId], references: [id])
-  post      Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
-  replies   Comment[] @relation("CommentReplies")
-  
-  @@map("comments")
-}
-
-enum ReactionType {
-  HEART
-  FIRE
-  LAUGH
-  CLAP
-  
-  @@map("reaction_types")
-}
-
-model Reaction {
-  id        Int          @id @default(autoincrement())
-  type      ReactionType
-  userId    Int          @map("user_id")
-  postId    Int          @map("post_id")
-  createdAt DateTime     @default(now()) @map("created_at")
-  
-  // Relations
-  user      User         @relation(fields: [userId], references: [id])
-  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, postId])
-  @@map("reactions")
-}
-
-// Bookmarks System
-enum BookmarkType {
-  ARTICLE
-  POST
-  
-  @@map("bookmark_types")
-}
-
+// Bookmarks System (Articles Only)
 model Bookmark {
-  id        Int          @id @default(autoincrement())
-  type      BookmarkType
-  userId    Int          @map("user_id")
-  articleId Int?         @map("article_id")
-  postId    Int?         @map("post_id")
-  createdAt DateTime     @default(now()) @map("created_at")
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  articleId Int      @map("article_id")
+  createdAt DateTime @default(now()) @map("created_at")
   
   // Relations
-  user      User         @relation(fields: [userId], references: [id])
-  article   Article?     @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  post      Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   
+  @@unique([userId, articleId])
   @@map("bookmarks")
 }
+
+// Cafés (Discussion Groups) System
 
 // Cafés (Discussion Groups) System
 model Cafe {
@@ -433,238 +352,107 @@ model CafePost {
   // Relations
   cafe      Cafe     @relation(fields: [cafeId], references: [id], onDelete: Cascade)
   author    User     @relation(fields: [authorId], references: [id])
+  reactions Reaction[]
   
   @@map("cafe_posts")
 }
 
-// Forum System (Q&A Style)
-model ForumCategory {
-  id          Int       @id @default(autoincrement())
-  name        String
-  slug        String    @unique
-  description String?
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  questions   ForumQuestion[]
-  
-  @@map("forum_categories")
-}
-
-model ForumQuestion {
-  id          Int       @id @default(autoincrement())
-  title       String
-  content     String
-  categoryId  Int       @map("category_id")
-  authorId    Int       @map("author_id")
-  isResolved  Boolean   @default(false) @map("is_resolved")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  category    ForumCategory @relation(fields: [categoryId], references: [id])
-  author      User          @relation(fields: [authorId], references: [id])
-  answers     ForumAnswer[]
-  
-  @@map("forum_questions")
-}
-
-model ForumAnswer {
-  id          Int       @id @default(autoincrement())
-  content     String
-  questionId  Int       @map("question_id")
-  authorId    Int       @map("author_id")
-  isBestAnswer Boolean  @default(false) @map("is_best_answer")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  question    ForumQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  author      User          @relation(fields: [authorId], references: [id])
-  votes       ForumVote[]
-  
-  @@map("forum_answers")
-}
-
-model ForumVote {
-  id        Int         @id @default(autoincrement())
-  isUpvote  Boolean     @map("is_upvote")
-  userId    Int         @map("user_id")
-  answerId  Int         @map("answer_id")
-  createdAt DateTime    @default(now()) @map("created_at")
-  
-  // Relations
-  user      User        @relation(fields: [userId], references: [id])
-  answer    ForumAnswer @relation(fields: [answerId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, answerId])
-  @@map("forum_votes")
-}
-
-// Events System (replaces Forum)
-model Event {
-  id         Int      @id @default(autoincrement())
-  title      String
-  host       String   // e.g., Google, Apple
-  startDate  DateTime @map("start_date")
-  endDate    DateTime @map("end_date")
-  details    String
-  link       String?  // link to event
-  mediaUrl   String?  @map("media_url") // image or video
-  result     String?  // summary or article
-  resultUrl  String?  @map("result_url") // link to full article or recap
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  
-  @@map("events")
-}
-
-// Issue System with Developer Ranking
-enum IssueStatus {
+// Mini Projects + Tasks System
+enum ProjectStatus {
   OPEN
-  ACTIVE
-  SOLVED
+  IN_PROGRESS
+  COMPLETED
   
-  @@map("issue_status")
+  @@map("project_status")
 }
 
-model Issue {
-  id          Int         @id @default(autoincrement())
+model Project {
+  id          Int           @id @default(autoincrement())
+  ownerId     Int           @map("owner_id")
   title       String
   description String
-  status      IssueStatus @default(OPEN)
-  tags        String[]    @default([])
-  createdById Int         @map("created_by_id")
-  solvedById  Int?        @map("solved_by_id")
-  solvedAt    DateTime?   @map("solved_at")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  isPublic    Boolean       @default(true) @map("is_public")
+  status      ProjectStatus @default(OPEN)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
   
   // Relations
-  createdBy   User        @relation("IssueCreator", fields: [createdById], references: [id])
-  solvedBy    User?       @relation("IssueSolver", fields: [solvedById], references: [id])
+  owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id])
+  tasks       ProjectTask[]
+  reactions   Reaction[]
   
-  @@map("issues")
+  @@map("projects")
 }
 
-enum DeveloperRank {
-  BEGINNER
-  PROBLEM_SOLVER
-  EXPERT
-  CONSULTANT
-  
-  @@map("developer_ranks")
-}
-
-model DeveloperProfile {
-  id     Int           @id @default(autoincrement())
-  userId Int           @unique @map("user_id")
-  points Int           @default(0)
-  rank   DeveloperRank @default(BEGINNER)
-  
-  // Relations
-  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("developer_profiles")
-}
-
-// Report/Notification System
-enum ReportStatus {
+enum TaskStatus {
   PENDING
-  REVIEWED
-  REJECTED
+  ASSIGNED
+  DONE
   
-  @@map("report_status")
+  @@map("task_status")
 }
 
-model Report {
-  id          Int          @id @default(autoincrement())
-  contentType String       @map("content_type") // article, post, cafe, etc
-  contentId   Int          @map("content_id")
-  reason      String
-  reportedById Int         @map("reported_by_id")
-  status      ReportStatus @default(PENDING)
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  
-  // Relations
-  reportedBy  User         @relation(fields: [reportedById], references: [id])
-  
-  @@map("reports")
-}
-
-// Podcast System (TalkTech)
-model Playlist {
-  id          Int       @id @default(autoincrement())
-  title       String    @unique
-  description String?
-  coverImage  String?   @map("cover_image")
-  isPublic    Boolean   @default(true) @map("is_public")
-  languageCode String?  @default("en") @map("language_code") // ISO 639-1 language code
-  countryCode String?   @map("country_code") // ISO 3166-1 alpha-2 country code
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  language    Language? @relation(fields: [languageCode], references: [code])
-  country     Country?  @relation(fields: [countryCode], references: [code])
-  episodes    Episode[]
-  
-  @@index([languageCode])
-  @@index([countryCode])
-  @@index([languageCode, countryCode])
-  @@map("playlists")
-}
-
-model Episode {
-  id          Int       @id @default(autoincrement())
+model ProjectTask {
+  id          Int           @id @default(autoincrement())
+  projectId   Int           @map("project_id")
   title       String
-  description String?
-  videoUrl    String    @map("video_url")
-  thumbnail   String?
-  duration    Int?      // in seconds
-  playlistId  Int       @map("playlist_id")
-  orderIndex  Int       @default(0) @map("order_index")
-  isPublished Boolean   @default(true) @map("is_published")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  description String
+  price       Int           // in TechCoin
+  status      TaskStatus    @default(PENDING)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
   
   // Relations
-  playlist    Playlist        @relation(fields: [playlistId], references: [id], onDelete: Cascade)
-  likes       EpisodeLike[]
-  comments    EpisodeComment[]
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  applications TaskApplication[]
+  assignment  TaskAssignment?
+  payment     TaskPayment?
   
-  @@map("episodes")
+  @@map("project_tasks")
 }
 
-model EpisodeLike {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  episodeId Int      @map("episode_id")
-  createdAt DateTime @default(now()) @map("created_at")
+model TaskApplication {
+  id          Int         @id @default(autoincrement())
+  taskId      Int         @map("task_id")
+  applicantId Int         @map("applicant_id")
+  message     String
+  createdAt   DateTime    @default(now()) @map("created_at")
   
   // Relations
-  user      User     @relation(fields: [userId], references: [id])
-  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  task        ProjectTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  applicant   User        @relation(fields: [applicantId], references: [id])
   
-  @@unique([userId, episodeId])
-  @@map("episode_likes")
+  @@unique([taskId, applicantId])
+  @@map("task_applications")
 }
 
-model EpisodeComment {
-  id        Int      @id @default(autoincrement())
-  content   String
-  userId    Int      @map("user_id")
-  episodeId Int      @map("episode_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+model TaskAssignment {
+  id          Int         @id @default(autoincrement())
+  taskId      Int         @unique @map("task_id")
+  userId      Int         @map("user_id")
+  assignedAt  DateTime    @default(now()) @map("assigned_at")
   
   // Relations
-  user      User     @relation(fields: [userId], references: [id])
-  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  task        ProjectTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
   
-  @@map("episode_comments")
+  @@map("task_assignments")
+}
+
+model TaskPayment {
+  id          Int         @id @default(autoincrement())
+  taskId      Int         @unique @map("task_id")
+  userId      Int         @map("user_id") // recipient of payment
+  amount      Int         // TechCoin amount
+  isPaid      Boolean     @default(false) @map("is_paid")
+  paidAt      DateTime?   @map("paid_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  
+  // Relations
+  task        ProjectTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
+  
+  @@map("task_payments")
 }
 
 // Translations System
@@ -715,4 +503,225 @@ model AIKey {
   
   @@unique([userId, providerId]) // One key per user per provider
   @@map("ai_keys")
+}
+
+// Digital Wallet System
+model Wallet {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique @map("user_id")
+  techCoin   Int      @default(100) @map("tech_coin")
+  xp         Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("wallets")
+}
+
+enum TransactionType {
+  BUY
+  EARN
+  SPEND
+  
+  @@map("transaction_types")
+}
+
+model WalletTransaction {
+  id          Int             @id @default(autoincrement())
+  userId      Int             @map("user_id")
+  type        TransactionType
+  amount      Int
+  description String
+  createdAt   DateTime        @default(now()) @map("created_at")
+  
+  // Relations
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("wallet_transactions")
+}
+
+// Challenge System
+enum ChallengeType {
+  VOTE
+  JUDGE
+  
+  @@map("challenge_types")
+}
+
+enum ChallengeStatus {
+  OPEN
+  CLOSED
+  
+  @@map("challenge_status")
+}
+
+model Challenge {
+  id          Int               @id @default(autoincrement())
+  title       String
+  description String
+  reward      Int               // TechCoin reward for winner
+  entryFee    Int               // TechCoin fee to participate
+  type        ChallengeType
+  startDate   DateTime          @map("start_date")
+  endDate     DateTime          @map("end_date")
+  status      ChallengeStatus   @default(OPEN)
+  createdById Int               @map("created_by_id")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  
+  // Relations
+  createdBy   User              @relation("ChallengeCreator", fields: [createdById], references: [id])
+  participants ChallengeParticipant[]
+  reactions   Reaction[]
+  
+  @@map("challenges")
+}
+
+enum ParticipantResult {
+  PENDING
+  WINNER
+  LOST
+  
+  @@map("participant_results")
+}
+
+model ChallengeParticipant {
+  id            Int               @id @default(autoincrement())
+  challengeId   Int               @map("challenge_id")
+  userId        Int               @map("user_id")
+  submissionUrl String?           @map("submission_url")
+  voteCount     Int               @default(0) @map("vote_count")
+  result        ParticipantResult @default(PENDING)
+  submittedAt   DateTime?         @map("submitted_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  
+  // Relations
+  challenge     Challenge         @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([challengeId, userId])
+  @@map("challenge_participants")
+}
+
+// ==========================================
+// REACTIONS SYSTEM
+// ==========================================
+
+enum ReactionType {
+  LIKE
+  LOVE
+  LAUGH
+  WOW
+  SAD
+  ANGRY
+  
+  @@map("reaction_types")
+}
+
+model Reaction {
+  id          Int          @id @default(autoincrement())
+  userId      Int          @map("user_id")
+  type        ReactionType
+  
+  // Content references (only one should be set)
+  articleId   Int?         @map("article_id")
+  projectId   Int?         @map("project_id")
+  challengeId Int?         @map("challenge_id")
+  cafePostId  Int?         @map("cafe_post_id")
+  
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article     Article?     @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  project     Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  challenge   Challenge?   @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  cafePost    CafePost?    @relation(fields: [cafePostId], references: [id], onDelete: Cascade)
+  
+  // Ensure user can only react once per content
+  @@unique([userId, articleId])
+  @@unique([userId, projectId])
+  @@unique([userId, challengeId])
+  @@unique([userId, cafePostId])
+  @@map("reactions")
+}
+
+// ==========================================
+// ARTICLE SCHEDULING & ENHANCEMENT SYSTEM
+// ==========================================
+
+enum ScheduledPostStatus {
+  SCHEDULED
+  PUBLISHED
+  CANCELED
+  
+  @@map("scheduled_post_status")
+}
+
+model ScheduledPost {
+  id          Int                 @id @default(autoincrement())
+  articleId   Int                 @map("article_id")
+  userId      Int                 @map("user_id")
+  publishAt   DateTime            @map("publish_at")
+  aiEnhanced  Boolean             @default(false) @map("ai_enhanced")
+  status      ScheduledPostStatus @default(SCHEDULED)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  
+  // Relations
+  article     Article             @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([articleId]) // One scheduled post per article
+  @@index([publishAt, status])
+  @@map("scheduled_posts")
+}
+
+model ArticleBoost {
+  id          Int      @id @default(autoincrement())
+  articleId   Int      @map("article_id")
+  userId      Int      @map("user_id")
+  coinSpent   Int      @map("coin_spent") // TechCoin spent for boosting
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([startDate, endDate])
+  @@index([articleId])
+  @@map("article_boosts")
+}
+
+enum AIEnhancementType {
+  TITLE_OPTIMIZATION
+  SUMMARY_GENERATION
+  SEO_TAGS
+  FULL_ENHANCEMENT
+  
+  @@map("ai_enhancement_types")
+}
+
+model ArticleAIEnhancement {
+  id             Int               @id @default(autoincrement())
+  articleId      Int               @map("article_id")
+  userId         Int               @map("user_id")
+  enhancementType AIEnhancementType @map("enhancement_type")
+  originalValue  String            @map("original_value") // Original title/summary/tags
+  enhancedValue  String            @map("enhanced_value") // AI-enhanced version
+  coinSpent      Int               @map("coin_spent") // TechCoin spent for AI enhancement
+  isApplied      Boolean           @default(false) @map("is_applied") // Whether user applied the enhancement
+  createdAt      DateTime          @default(now()) @map("created_at")
+  
+  // Relations
+  article        Article           @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([articleId, enhancementType])
+  @@map("article_ai_enhancements")
 }

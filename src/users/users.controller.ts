@@ -24,7 +24,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles, UserRole } from '../common/decorators/roles.decorator';
 
-@ApiTags('Users')
+@ApiTags('👥 Users')
 @ApiSecurity('X-HTTP-TOKEN')
 @UseGuards(JwtAuthGuard)
 @Controller('users')

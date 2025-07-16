@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AIService } from './ai.service';
 import { AIProvider } from '../common/enums/ai-provider.enum';
 
-@ApiTags('AI')
+@ApiTags('🤖 AI')
 @ApiBearerAuth()
 @Controller('ai')
 @UseGuards(JwtAuthGuard)

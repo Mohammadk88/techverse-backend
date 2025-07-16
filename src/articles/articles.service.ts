@@ -14,6 +14,9 @@ import {
   ArticleFilterDto,
   AIGenerateArticleDto,
 } from './dto/article.dto';
+import { ScheduleArticleDto } from './dto/schedule-article.dto';
+import { BoostArticleDto } from './dto/boost-article.dto';
+import { EnhanceArticleDto } from './dto/enhance-article.dto';
 import { PaginationDto, PaginatedResult } from '../common/dto/pagination.dto';
 import { UserRole } from '../common/decorators/roles.decorator';
 import { AIService } from '../ai/ai.service';
@@ -495,6 +498,457 @@ export class ArticlesService {
     };
 
     return this.create(createArticleDto, authorId);
+  }
+
+  // =======================================================
+  // ARTICLE SCHEDULING SYSTEM
+  // =======================================================
+
+  async scheduleArticle(articleId: number, scheduleDto: any, userId: number) {
+    // Check if article exists and user owns it
+    const article = await this.prisma.article.findUnique({
+      where: { id: articleId },
+      select: { authorId: true, isPublished: true, title: true },
+    });
+
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    if (article.authorId !== userId) {
+      throw new ForbiddenException('You can only schedule your own articles');
+    }
+
+    if (article.isPublished) {
+      throw new ConflictException('Cannot schedule already published article');
+    }
+
+    // Check if article already has a scheduled post
+    const existingSchedule = await this.prisma.scheduledPost.findUnique({
+      where: { articleId },
+    });
+
+    if (existingSchedule) {
+      throw new ConflictException('Article already has a scheduled post');
+    }
+
+    const publishAt = new Date(scheduleDto.publishAt);
+    const now = new Date();
+
+    if (publishAt <= now) {
+      throw new ConflictException('Cannot schedule article for past date');
+    }
+
+    return this.prisma.scheduledPost.create({
+      data: {
+        articleId,
+        userId,
+        publishAt,
+        aiEnhanced: scheduleDto.aiEnhanced || false,
+      },
+      include: {
+        article: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getScheduledPosts(userId: number) {
+    return this.prisma.scheduledPost.findMany({
+      where: { userId },
+      include: {
+        article: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            excerpt: true,
+            featuredImage: true,
+          },
+        },
+      },
+      orderBy: {
+        publishAt: 'asc',
+      },
+    });
+  }
+
+  async cancelScheduledPost(scheduleId: number, userId: number) {
+    const scheduledPost = await this.prisma.scheduledPost.findUnique({
+      where: { id: scheduleId },
+      select: { userId: true },
+    });
+
+    if (!scheduledPost) {
+      throw new NotFoundException('Scheduled post not found');
+    }
+
+    if (scheduledPost.userId !== userId) {
+      throw new ForbiddenException('You can only cancel your own scheduled posts');
+    }
+
+    await this.prisma.scheduledPost.update({
+      where: { id: scheduleId },
+      data: { status: 'CANCELED' },
+    });
+
+    return { message: 'Scheduled post canceled successfully' };
+  }
+
+  // =======================================================
+  // ARTICLE BOOSTING SYSTEM
+  // =======================================================
+
+  async boostArticle(articleId: number, boostDto: any, userId: number) {
+    // Check if article exists and is published
+    const article = await this.prisma.article.findUnique({
+      where: { id: articleId },
+      select: { 
+        id: true, 
+        title: true, 
+        slug: true, 
+        isPublished: true, 
+        authorId: true 
+      },
+    });
+
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    if (!article.isPublished) {
+      throw new ConflictException('Can only boost published articles');
+    }
+
+    // Check user's wallet balance
+    const wallet = await this.prisma.wallet.findUnique({
+      where: { userId },
+      select: { techCoin: true },
+    });
+
+    if (!wallet || wallet.techCoin < boostDto.coinSpent) {
+      throw new ConflictException('Insufficient TechCoin balance');
+    }
+
+    const startDate = new Date(boostDto.startDate);
+    const endDate = new Date(boostDto.endDate);
+    const now = new Date();
+
+    if (startDate >= endDate) {
+      throw new ConflictException('End date must be after start date');
+    }
+
+    if (endDate <= now) {
+      throw new ConflictException('End date must be in the future');
+    }
+
+    // Check for overlapping boosts
+    const overlappingBoost = await this.prisma.articleBoost.findFirst({
+      where: {
+        articleId,
+        OR: [
+          {
+            AND: [
+              { startDate: { lte: startDate } },
+              { endDate: { gte: startDate } },
+            ],
+          },
+          {
+            AND: [
+              { startDate: { lte: endDate } },
+              { endDate: { gte: endDate } },
+            ],
+          },
+          {
+            AND: [
+              { startDate: { gte: startDate } },
+              { endDate: { lte: endDate } },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (overlappingBoost) {
+      throw new ConflictException('Article already has a boost in this time period');
+    }
+
+    // Deduct coins from wallet and create boost
+    const [boost] = await this.prisma.$transaction([
+      this.prisma.articleBoost.create({
+        data: {
+          articleId,
+          userId,
+          coinSpent: boostDto.coinSpent,
+          startDate,
+          endDate,
+        },
+        include: {
+          article: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+            },
+          },
+        },
+      }),
+      this.prisma.wallet.update({
+        where: { userId },
+        data: { techCoin: { decrement: boostDto.coinSpent } },
+      }),
+      this.prisma.walletTransaction.create({
+        data: {
+          userId,
+          type: 'SPEND',
+          amount: boostDto.coinSpent,
+          description: `Article boost: ${article.title}`,
+        },
+      }),
+    ]);
+
+    return boost;
+  }
+
+  async getArticleBoosts(articleId: number) {
+    const article = await this.prisma.article.findUnique({
+      where: { id: articleId },
+      select: { id: true },
+    });
+
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    return this.prisma.articleBoost.findMany({
+      where: { articleId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+            avatar: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async getUserBoosts(userId: number) {
+    return this.prisma.articleBoost.findMany({
+      where: { userId },
+      include: {
+        article: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            featuredImage: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  // =======================================================
+  // AI ENHANCEMENT SYSTEM
+  // =======================================================
+
+  async enhanceArticleWithAI(articleId: number, enhanceDto: any, userId: number) {
+    // Check if article exists and user owns it
+    const article = await this.prisma.article.findUnique({
+      where: { id: articleId },
+      select: { 
+        authorId: true, 
+        title: true, 
+        content: true, 
+        excerpt: true 
+      },
+    });
+
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    if (article.authorId !== userId) {
+      throw new ForbiddenException('You can only enhance your own articles');
+    }
+
+    // Check user's wallet balance
+    const enhancementCosts = {
+      TITLE_OPTIMIZATION: 20,
+      SUMMARY_GENERATION: 30,
+      SEO_TAGS: 25,
+      FULL_ENHANCEMENT: 100,
+    };
+
+    const coinCost = enhancementCosts[enhanceDto.enhancementType];
+    
+    const wallet = await this.prisma.wallet.findUnique({
+      where: { userId },
+      select: { techCoin: true },
+    });
+
+    if (!wallet || wallet.techCoin < coinCost) {
+      throw new ConflictException('Insufficient TechCoin balance');
+    }
+
+    // Get original value based on enhancement type
+    let originalValue = '';
+    switch (enhanceDto.enhancementType) {
+      case 'TITLE_OPTIMIZATION':
+        originalValue = article.title;
+        break;
+      case 'SUMMARY_GENERATION':
+        originalValue = article.excerpt || '';
+        break;
+      case 'SEO_TAGS':
+        originalValue = 'Current article tags';
+        break;
+      case 'FULL_ENHANCEMENT':
+        originalValue = article.content;
+        break;
+    }
+
+    // Generate AI enhancement (simplified mock for now)
+    let enhancedValue = '';
+    try {
+      switch (enhanceDto.enhancementType) {
+        case 'TITLE_OPTIMIZATION':
+          enhancedValue = `[ENHANCED] ${article.title}`;
+          break;
+        case 'SUMMARY_GENERATION':
+          enhancedValue = `AI-generated summary for: ${article.title.substring(0, 100)}...`;
+          break;
+        case 'SEO_TAGS':
+          enhancedValue = 'tech, programming, development, coding';
+          break;
+        case 'FULL_ENHANCEMENT':
+          enhancedValue = `${article.content}\n\n[AI Enhanced Content Added]`;
+          break;
+      }
+    } catch (error) {
+      throw new ConflictException('AI enhancement failed. Please try again.');
+    }
+
+    // Create enhancement record and deduct coins
+    const [enhancement] = await this.prisma.$transaction([
+      this.prisma.articleAIEnhancement.create({
+        data: {
+          articleId,
+          userId,
+          enhancementType: enhanceDto.enhancementType,
+          originalValue,
+          enhancedValue,
+          coinSpent: coinCost,
+        },
+      }),
+      this.prisma.wallet.update({
+        where: { userId },
+        data: { techCoin: { decrement: coinCost } },
+      }),
+      this.prisma.walletTransaction.create({
+        data: {
+          userId,
+          type: 'SPEND',
+          amount: coinCost,
+          description: `AI Enhancement: ${enhanceDto.enhancementType}`,
+        },
+      }),
+    ]);
+
+    return enhancement;
+  }
+
+  async applyAIEnhancement(enhancementId: number, userId: number) {
+    const enhancement = await this.prisma.articleAIEnhancement.findUnique({
+      where: { id: enhancementId },
+      include: {
+        article: {
+          select: {
+            id: true,
+            authorId: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    if (!enhancement) {
+      throw new NotFoundException('Enhancement not found');
+    }
+
+    if (enhancement.userId !== userId) {
+      throw new ForbiddenException('You can only apply your own enhancements');
+    }
+
+    if (enhancement.isApplied) {
+      throw new ConflictException('Enhancement already applied');
+    }
+
+    // Apply the enhancement to the article
+    const updateData: any = {};
+    switch (enhancement.enhancementType) {
+      case 'TITLE_OPTIMIZATION':
+        updateData.title = enhancement.enhancedValue;
+        updateData.slug = this.generateSlug(enhancement.enhancedValue);
+        break;
+      case 'SUMMARY_GENERATION':
+        updateData.excerpt = enhancement.enhancedValue;
+        break;
+      case 'FULL_ENHANCEMENT':
+        updateData.content = enhancement.enhancedValue;
+        break;
+      // SEO_TAGS would need separate handling for tags
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.article.update({
+        where: { id: enhancement.articleId },
+        data: updateData,
+      }),
+      this.prisma.articleAIEnhancement.update({
+        where: { id: enhancementId },
+        data: { isApplied: true },
+      }),
+    ]);
+
+    return { message: 'Enhancement applied successfully' };
+  }
+
+  async getArticleEnhancements(articleId: number, userId: number) {
+    const article = await this.prisma.article.findUnique({
+      where: { id: articleId },
+      select: { authorId: true },
+    });
+
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    if (article.authorId !== userId) {
+      throw new ForbiddenException('You can only view enhancements for your own articles');
+    }
+
+    return this.prisma.articleAIEnhancement.findMany({
+      where: { articleId },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
   // Helper Methods

@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { LanguagesService } from './languages.service';
 import { Public } from '../common/decorators/public.decorator';
 
-@ApiTags('languages')
+@ApiTags('🌍 Languages')
 @Controller('languages')
 export class LanguagesController {
   constructor(private readonly languagesService: LanguagesService) {}

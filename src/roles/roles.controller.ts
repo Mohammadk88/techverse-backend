@@ -27,7 +27,7 @@ import {
   CreateCafeRoleDto,
 } from './dto/roles.dto';
 
-@ApiTags('roles')
+@ApiTags('🛡️ Roles')
 @ApiSecurity('X-HTTP-TOKEN')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('roles')

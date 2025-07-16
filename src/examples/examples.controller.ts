@@ -18,7 +18,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { EnhancedRolesGuard } from '../auth/guards/enhanced-roles.guard';
 import { GlobalRoles, CafeRoles, GLOBAL_ROLES, CAFE_ROLES } from '../auth/decorators/enhanced-roles.decorator';
 
-@ApiTags('examples')
+@ApiTags('📋 Examples')
 @ApiSecurity('X-HTTP-TOKEN')
 @UseGuards(JwtAuthGuard, EnhancedRolesGuard)
 @Controller('examples')

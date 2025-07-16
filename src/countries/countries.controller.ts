@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { CountriesService } from './countries.service';
 import { Public } from '../common/decorators/public.decorator';
 
-@ApiTags('countries')
+@ApiTags('🗺️ Countries')
 @Controller('countries')
 export class CountriesController {
   constructor(private readonly countriesService: CountriesService) {}

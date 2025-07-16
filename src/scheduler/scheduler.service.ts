@@ -56,50 +56,7 @@ export class SchedulerService {
         });
       }
 
-      // Publish scheduled posts
-      const scheduledPosts = await this.prisma.post.findMany({
-        where: {
-          isPublished: false,
-          scheduledFor: {
-            lte: now,
-          },
-        },
-        select: {
-          id: true,
-          content: true,
-          scheduledFor: true,
-        },
-      });
-
-      if (scheduledPosts.length > 0) {
-        const publishedPosts = await this.prisma.post.updateMany({
-          where: {
-            id: {
-              in: scheduledPosts.map((post) => post.id),
-            },
-          },
-          data: {
-            isPublished: true,
-            publishedAt: now,
-            scheduledFor: null, // Clear the schedule
-          },
-        });
-
-        this.logger.log(`Published ${publishedPosts.count} scheduled posts`);
-
-        // Log each published post
-        scheduledPosts.forEach((post) => {
-          const preview =
-            post.content.length > 50
-              ? `${post.content.substring(0, 50)}...`
-              : post.content;
-          this.logger.log(
-            `📱 Published post: "${preview}" (scheduled for ${post.scheduledFor?.toISOString()})`,
-          );
-        });
-      }
-
-      if (scheduledArticles.length === 0 && scheduledPosts.length === 0) {
+      if (scheduledArticles.length === 0) {
         this.logger.log('No scheduled content found for publishing');
       }
     } catch (error) {
@@ -109,109 +66,62 @@ export class SchedulerService {
 
   async getScheduledContent(): Promise<{
     articles: any[];
-    posts: any[];
     totalCount: number;
   }> {
     const now = new Date();
 
-    const [articles, posts] = await Promise.all([
-      this.prisma.article.findMany({
-        where: {
-          isPublished: false,
-          scheduledFor: {
-            gt: now,
+    const articles = await this.prisma.article.findMany({
+      where: {
+        isPublished: false,
+        scheduledFor: {
+          gt: now,
+        },
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
           },
         },
-        include: {
-          author: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              username: true,
-            },
-          },
-          category: true,
-        },
-        orderBy: {
-          scheduledFor: 'asc',
-        },
-      }),
-      this.prisma.post.findMany({
-        where: {
-          isPublished: false,
-          scheduledFor: {
-            gt: now,
-          },
-        },
-        include: {
-          author: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              username: true,
-            },
-          },
-        },
-        orderBy: {
-          scheduledFor: 'asc',
-        },
-      }),
-    ]);
+        category: true,
+      },
+      orderBy: {
+        scheduledFor: 'asc',
+      },
+    });
 
     return {
       articles,
-      posts,
-      totalCount: articles.length + posts.length,
+      totalCount: articles.length,
     };
   }
 
-  async cancelScheduledContent(
-    type: 'article' | 'post',
-    id: number,
-  ): Promise<void> {
-    if (type === 'article') {
-      await this.prisma.article.update({
-        where: { id },
-        data: {
-          scheduledFor: null,
-        },
-      });
-    } else {
-      await this.prisma.post.update({
-        where: { id },
-        data: {
-          scheduledFor: null,
-        },
-      });
-    }
+  async cancelScheduledContent(type: 'article', id: number): Promise<void> {
+    await this.prisma.article.update({
+      where: { id },
+      data: {
+        scheduledFor: null,
+      },
+    });
 
     this.logger.log(`Cancelled scheduled ${type} with ID: ${id}`);
   }
 
   async rescheduleContent(
-    type: 'article' | 'post',
+    type: 'article',
     id: number,
     newScheduleTime: Date,
   ): Promise<void> {
-    if (type === 'article') {
-      await this.prisma.article.update({
-        where: { id },
-        data: {
-          scheduledFor: newScheduleTime,
-          isPublished: false, // Ensure it's not published yet
-        },
-      });
-    } else {
-      await this.prisma.post.update({
-        where: { id },
-        data: {
-          scheduledFor: newScheduleTime,
-          isPublished: false, // Ensure it's not published yet
-        },
-      });
-    }
+    await this.prisma.article.update({
+      where: { id },
+      data: {
+        scheduledFor: newScheduleTime,
+        isPublished: false, // Ensure it's not published yet
+      },
+    });
 
     this.logger.log(
       `Rescheduled ${type} with ID: ${id} to ${newScheduleTime.toISOString()}`,

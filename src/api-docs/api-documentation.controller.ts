@@ -52,9 +52,9 @@ export class ApiDocumentationController {
       features: [
         'JWT Authentication & Role-based Access Control',
         'Multi-language Support (Languages, Countries, Cities)',
-        'Content Management (Articles, Posts, Forums)',
+        'Content Management (Articles, Posts)',
         'Community Management (Cafés - Discussion Groups)',
-        'Podcast System (TalkTech Episodes & Playlists)',
+        'Mini Projects & Tasks System with TechCoin Payments',
         'Bookmarking System',
         'User Profiles & Social Features'
       ],
@@ -77,8 +77,7 @@ export class ApiDocumentationController {
         articles: '/articles',
         posts: '/posts',
         cafes: '/cafes',
-        forums: '/forums',
-        podcasts: '/podcasts',
+        projects: '/projects',
         bookmarks: '/bookmarks',
         languages: '/languages',
         countries: '/countries',

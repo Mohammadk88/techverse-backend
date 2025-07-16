@@ -11,24 +11,54 @@ import {
   Query,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CafesService } from './cafes.service';
 import { Public } from '../common/decorators/public.decorator';
 import { CreateCafeDto, UpdateCafeDto, CreateCafePostDto, UpdateCafePostDto, CafeFilterDto } from './dto/cafe.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@ApiTags('Cafés')
+@ApiTags('☕ Cafés')
 @ApiBearerAuth()
 @Controller('cafes')
 @UseGuards(JwtAuthGuard)
 export class CafesController {
   constructor(private readonly cafesService: CafesService) {}
 
-  // Cafe Management
   @Post()
+  @ApiOperation({
+    summary: 'Create a new café',
+    description: 'Create a new café community. Costs 50 TechCoin to create.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Café created successfully',
+    schema: {
+      example: {
+        id: 15,
+        name: 'JavaScript Developers',
+        description: 'A community for JS developers to share and learn',
+        slug: 'javascript-developers',
+        isPrivate: false,
+        memberCount: 1,
+        createdBy: {
+          id: 123,
+          username: 'johndoe',
+        },
+        createdAt: '2025-07-16T15:00:00Z',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Insufficient TechCoin balance (50 TechCoin required)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - JWT token required',
+  })
   async create(@Body() createCafeDto: CreateCafeDto, @Request() req) {
-    return this.cafesService.create(createCafeDto, req.user.userId);
+    return this.cafesService.create(createCafeDto, req.user.id);
   }
 
   @Get()
@@ -75,12 +105,12 @@ export class CafesController {
   // Member Management
   @Post(':id/join')
   async joinCafe(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    return this.cafesService.joinCafe(id, req.user.userId);
+    return this.cafesService.joinCafe(id, req.user.id);
   }
 
   @Post(':id/leave')
   async leaveCafe(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    return this.cafesService.leaveCafe(id, req.user.userId);
+    return this.cafesService.leaveCafe(id, req.user.id);
   }
 
   // Cafe Posts Management
@@ -90,7 +120,7 @@ export class CafesController {
     @Body() createCafePostDto: CreateCafePostDto,
     @Request() req,
   ) {
-    return this.cafesService.createPost(id, createCafePostDto, req.user.userId);
+    return this.cafesService.createPost(id, createCafePostDto, req.user.id);
   }
 
   @Get(':id/posts')
