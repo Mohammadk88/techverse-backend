@@ -58,6 +58,7 @@ model City {
   country     Country  @relation(fields: [countryId], references: [id])
   users       User[]
   
+  @@unique([name, countryId], name: "name_countryId")
   @@map("cities")
 }
 
