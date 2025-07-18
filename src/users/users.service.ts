@@ -103,7 +103,21 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    // Get follow counts
+    const [followersCount, followingCount] = await Promise.all([
+      this.prisma.follow.count({
+        where: { followingId: id },
+      }),
+      this.prisma.follow.count({
+        where: { followerId: id },
+      }),
+    ]);
+
+    return {
+      ...user,
+      followersCount,
+      followingCount,
+    };
   }
 
   async findOneWithLocation(id: number) {

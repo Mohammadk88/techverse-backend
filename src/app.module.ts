@@ -21,6 +21,8 @@ import { ProjectsModule } from './projects/projects.module';
 import { WalletModule } from './wallet/wallet.module';
 import { ChallengesModule } from './challenges/challenges.module';
 import { ReactionsModule } from './reactions/reactions.module';
+import { SearchModule } from './search/search.module';
+import { FollowModule } from './follow/follow.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -44,6 +46,8 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     WalletModule,
     ChallengesModule,
     ReactionsModule,
+    SearchModule,
+    FollowModule,
   ],
   controllers: [AppController],
   providers: [

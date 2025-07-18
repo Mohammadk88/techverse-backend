@@ -194,6 +194,10 @@ model User {
   articleBoosts      ArticleBoost[]
   articleAIEnhancements ArticleAIEnhancement[]
   
+  // Follow Relations
+  followers          Follow[]         @relation("UserFollowing") // Users following this user
+  following          Follow[]         @relation("UserFollowers") // Users this user is following
+  
   @@map("users")
 }
 
@@ -725,4 +729,24 @@ model ArticleAIEnhancement {
   
   @@index([articleId, enhancementType])
   @@map("article_ai_enhancements")
+}
+
+// ==========================================
+// FOLLOW SYSTEM
+// ==========================================
+
+model Follow {
+  id         Int      @id @default(autoincrement())
+  followerId Int      @map("follower_id") // User who follows
+  followingId Int     @map("following_id") // User being followed
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  follower   User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following  User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
 }
