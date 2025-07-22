@@ -53,9 +53,9 @@ export class ReactionsController {
     return this.reactionsService.addReaction(user.id, createReactionDto);
   }
 
-  @Delete('article/:articleId')
+  @Delete('article/:article_id')
   @ApiOperation({ summary: 'Remove reaction from article' })
-  @ApiParam({ name: 'articleId', description: 'Article ID' })
+  @ApiParam({ name: 'article_id', description: 'Article ID' })
   @ApiResponse({
     status: 200,
     description: 'Reaction removed successfully',
@@ -65,27 +65,27 @@ export class ReactionsController {
     description: 'Reaction not found',
   })
   async removeArticleReaction(
-    @Param('articleId') articleId: string,
+    @Param('article_id') article_id: string,
     @CurrentUser() user: User,
   ): Promise<{ message: string }> {
-    return this.reactionsService.removeReaction(user.id, +articleId);
+    return this.reactionsService.removeReaction(user.id, +article_id);
   }
 
-  @Delete('project/:projectId')
+  @Delete('project/:project_id')
   @ApiOperation({ summary: 'Remove reaction from project' })
-  @ApiParam({ name: 'projectId', description: 'Project ID' })
+  @ApiParam({ name: 'project_id', description: 'Project ID' })
   @ApiResponse({
     status: 200,
     description: 'Reaction removed successfully',
   })
   async removeProjectReaction(
-    @Param('projectId') projectId: string,
+    @Param('project_id') project_id: string,
     @CurrentUser() user: User,
   ): Promise<{ message: string }> {
     return this.reactionsService.removeReaction(
       user.id,
       undefined,
-      +projectId,
+      +project_id,
     );
   }
 
@@ -97,14 +97,14 @@ export class ReactionsController {
     description: 'Reaction removed successfully',
   })
   async removeChallengeReaction(
-    @Param('challengeId') challengeId: string,
+    @Param('challengeId') challenge_id: string,
     @CurrentUser() user: User,
   ): Promise<{ message: string }> {
     return this.reactionsService.removeReaction(
       user.id,
       undefined,
       undefined,
-      +challengeId,
+      +challenge_id,
     );
   }
 
@@ -130,8 +130,8 @@ export class ReactionsController {
 
   @Get('stats')
   @ApiOperation({ summary: 'Get reaction statistics for content' })
-  @ApiQuery({ name: 'articleId', required: false, description: 'Article ID' })
-  @ApiQuery({ name: 'projectId', required: false, description: 'Project ID' })
+  @ApiQuery({ name: 'article_id', required: false, description: 'Article ID' })
+  @ApiQuery({ name: 'project_id', required: false, description: 'Project ID' })
   @ApiQuery({ name: 'challengeId', required: false, description: 'Challenge ID' })
   @ApiQuery({ name: 'cafePostId', required: false, description: 'Cafe Post ID' })
   @ApiResponse({
@@ -140,15 +140,15 @@ export class ReactionsController {
     type: ReactionStatsDto,
   })
   async getReactionStats(
-    @Query('articleId') articleId?: string,
-    @Query('projectId') projectId?: string,
+    @Query('article_id') article_id?: string,
+    @Query('project_id') project_id?: string,
     @Query('challengeId') challengeId?: string,
     @Query('cafePostId') cafePostId?: string,
     @CurrentUser() user?: User,
   ): Promise<ReactionStatsDto> {
     return this.reactionsService.getReactionStats(
-      articleId ? +articleId : undefined,
-      projectId ? +projectId : undefined,
+      article_id ? +article_id : undefined,
+      project_id ? +project_id : undefined,
       challengeId ? +challengeId : undefined,
       cafePostId ? +cafePostId : undefined,
       user?.id,
@@ -157,8 +157,8 @@ export class ReactionsController {
 
   @Get()
   @ApiOperation({ summary: 'Get reactions for content' })
-  @ApiQuery({ name: 'articleId', required: false, description: 'Article ID' })
-  @ApiQuery({ name: 'projectId', required: false, description: 'Project ID' })
+  @ApiQuery({ name: 'article_id', required: false, description: 'Article ID' })
+  @ApiQuery({ name: 'project_id', required: false, description: 'Project ID' })
   @ApiQuery({ name: 'challengeId', required: false, description: 'Challenge ID' })
   @ApiQuery({ name: 'cafePostId', required: false, description: 'Cafe Post ID' })
   @ApiQuery({ name: 'page', required: false, description: 'Page number', example: 1 })
@@ -168,8 +168,8 @@ export class ReactionsController {
     description: 'List of reactions',
   })
   async getContentReactions(
-    @Query('articleId') articleId?: string,
-    @Query('projectId') projectId?: string,
+    @Query('article_id') article_id?: string,
+    @Query('project_id') project_id?: string,
     @Query('challengeId') challengeId?: string,
     @Query('cafePostId') cafePostId?: string,
     @Query('page') page?: string,
@@ -184,8 +184,8 @@ export class ReactionsController {
     };
   }> {
     return this.reactionsService.getContentReactions(
-      articleId ? +articleId : undefined,
-      projectId ? +projectId : undefined,
+      article_id ? +article_id : undefined,
+      project_id ? +project_id : undefined,
       challengeId ? +challengeId : undefined,
       cafePostId ? +cafePostId : undefined,
       page ? +page : 1,

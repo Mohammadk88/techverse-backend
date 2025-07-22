@@ -48,8 +48,8 @@ async function testFollowAPIs() {
       console.log('📝 Registering user 1...');
       const registerResponse = await axios.post<LoginResponse>(`${API_BASE_URL}/auth/register`, {
         ...testUsers[0],
-        firstName: 'Test',
-        lastName: 'User1',
+        first_name: 'Test',
+        last_name: 'User1',
         username: `testuser1_${timestamp}`,
         countryId: 21, // United States
         cityId: 87, // New York
@@ -76,8 +76,8 @@ async function testFollowAPIs() {
       console.log('📝 Registering user 2...');
       const registerResponse = await axios.post<LoginResponse>(`${API_BASE_URL}/auth/register`, {
         ...testUsers[1],
-        firstName: 'Test',
-        lastName: 'User2',
+        first_name: 'Test',
+        last_name: 'User2',
         username: `testuser2_${timestamp}`,
         countryId: 21, // United States
         cityId: 88, // Los Angeles
@@ -151,7 +151,7 @@ async function testFollowAPIs() {
         headers: { Authorization: `Bearer ${user1Token}` },
       }
     );
-    console.log(`${user1.username} following:`, followingResponse.data);
+    console.log(`${user1.username} users_follows_following_idTousers:`, followingResponse.data);
     console.log();
 
     // Step 7: Test duplicate follow (should fail)

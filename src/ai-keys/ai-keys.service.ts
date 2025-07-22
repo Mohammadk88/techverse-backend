@@ -42,42 +42,42 @@ export class AIKeysService {
 
   // Get all AI providers
   async getProviders() {
-    return this.prisma.aIProvider.findMany({
-      where: { isActive: true },
+    return this.prisma.ai_providers.findMany({
+      where: { is_active: true },
       orderBy: [
-        { isDefault: 'desc' },
+        { is_default: 'desc' },
         { name: 'asc' },
       ],
     });
   }
 
   // Get user's API keys
-  async getUserKeys(userId: number) {
-    return this.prisma.aIKey.findMany({
-      where: { userId },
+  async getUserKeys(user_id: number) {
+    return this.prisma.ai_keys.findMany({
+      where: { user_id },
       include: {
-        provider: {
+        ai_providers: {
           select: {
             id: true,
             name: true,
             label: true,
-            isActive: true,
+            is_active: true,
           },
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        created_at: 'desc',
       },
     });
   }
 
   // Create new API key for user
-  async createUserKey(userId: number, createKeyDto: CreateAIKeyDto) {
-    const { providerId, secretKey } = createKeyDto;
+  async createUserKey(user_id: number, createKeyDto: CreateAIKeyDto) {
+    const { provider_id, secret_key } = createKeyDto;
 
     // Check if provider exists and is active
-    const provider = await this.prisma.aIProvider.findFirst({
-      where: { id: providerId, isActive: true },
+    const provider = await this.prisma.ai_providers.findFirst({
+      where: { id: provider_id, is_active: true },
     });
 
     if (!provider) {
@@ -85,8 +85,8 @@ export class AIKeysService {
     }
 
     // Check if user already has a key for this provider
-    const existingKey = await this.prisma.aIKey.findFirst({
-      where: { userId, providerId },
+    const existingKey = await this.prisma.ai_keys.findFirst({
+      where: { user_id, provider_id },
     });
 
     if (existingKey) {
@@ -95,15 +95,16 @@ export class AIKeysService {
       );
     }
 
-    return this.prisma.aIKey.create({
+    return this.prisma.ai_keys.create({
       data: {
-        userId,
-        providerId,
-        secretKey: this.encrypt(secretKey),
-        isActive: true,
+        user_id,
+        provider_id,
+        secret_key: this.encrypt(secret_key),
+        is_active: true,
+        updated_at: new Date(),
       },
       include: {
-        provider: {
+        ai_providers: {
           select: {
             id: true,
             name: true,
@@ -116,12 +117,12 @@ export class AIKeysService {
 
   // Update user's API key
   async updateUserKey(
-    userId: number,
+    user_id: number,
     keyId: number,
     updateKeyDto: UpdateAIKeyDto,
   ) {
-    const key = await this.prisma.aIKey.findFirst({
-      where: { id: keyId, userId },
+    const key = await this.prisma.ai_keys.findFirst({
+      where: { id: keyId, user_id },
     });
 
     if (!key) {
@@ -130,19 +131,19 @@ export class AIKeysService {
 
     const updateData: any = {};
     
-    if (updateKeyDto.secretKey) {
-      updateData.secretKey = this.encrypt(updateKeyDto.secretKey);
+    if (updateKeyDto.secret_key) {
+      updateData.secret_key = this.encrypt(updateKeyDto.secret_key);
     }
     
-    if (updateKeyDto.isActive !== undefined) {
-      updateData.isActive = updateKeyDto.isActive;
+    if (updateKeyDto.is_active !== undefined) {
+      updateData.is_active = updateKeyDto.is_active;
     }
 
-    return this.prisma.aIKey.update({
+    return this.prisma.ai_keys.update({
       where: { id: keyId },
       data: updateData,
       include: {
-        provider: {
+        ai_providers: {
           select: {
             id: true,
             name: true,
@@ -154,16 +155,16 @@ export class AIKeysService {
   }
 
   // Delete user's API key
-  async deleteUserKey(userId: number, keyId: number) {
-    const key = await this.prisma.aIKey.findFirst({
-      where: { id: keyId, userId },
+  async deleteUserKey(user_id: number, keyId: number) {
+    const key = await this.prisma.ai_keys.findFirst({
+      where: { id: keyId, user_id },
     });
 
     if (!key) {
       throw new NotFoundException('API key not found');
     }
 
-    await this.prisma.aIKey.delete({
+    await this.prisma.ai_keys.delete({
       where: { id: keyId },
     });
 
@@ -171,60 +172,60 @@ export class AIKeysService {
   }
 
   // Get the best available API key for a provider (user key first, then system key)
-  async getApiKeyForProvider(providerId: number, userId?: number): Promise<string | null> {
+  async getApiKeyForProvider(provider_id: number, user_id?: number): Promise<string | null> {
     let key: any = null;
 
-    // Try to get user's key first if userId is provided
-    if (userId) {
-      key = await this.prisma.aIKey.findFirst({
+    // Try to get user's key first if user_id is provided
+    if (user_id) {
+      key = await this.prisma.ai_keys.findFirst({
         where: {
-          userId,
-          providerId,
-          isActive: true,
+          user_id,
+          provider_id,
+          is_active: true,
         },
       });
     }
 
     // If no user key found, try to get system key
     if (!key) {
-      key = await this.prisma.aIKey.findFirst({
+      key = await this.prisma.ai_keys.findFirst({
         where: {
-          userId: null,
-          providerId,
-          isActive: true,
+          user_id: null,
+          provider_id,
+          is_active: true,
         },
       });
     }
 
-    return key ? this.decrypt(key.secretKey) : null;
+    return key ? this.decrypt(key.secret_key) : null;
   }
 
   // Admin: Get all system keys
   async getSystemKeys() {
-    return this.prisma.aIKey.findMany({
-      where: { userId: null },
+    return this.prisma.ai_keys.findMany({
+      where: { user_id: null },
       include: {
-        provider: {
+        ai_providers: {
           select: {
             id: true,
             name: true,
             label: true,
-            isActive: true,
+            is_active: true,
           },
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        created_at: 'desc',
       },
     });
   }
 
   // Admin: Create system API key
   async createSystemKey(createKeyDto: CreateAIKeyDto) {
-    const { providerId, secretKey } = createKeyDto;
+    const { provider_id, secret_key } = createKeyDto;
 
-    const provider = await this.prisma.aIProvider.findFirst({
-      where: { id: providerId, isActive: true },
+    const provider = await this.prisma.ai_providers.findFirst({
+      where: { id: provider_id, is_active: true },
     });
 
     if (!provider) {
@@ -232,8 +233,8 @@ export class AIKeysService {
     }
 
     // Check if system key already exists for this provider
-    const existingKey = await this.prisma.aIKey.findFirst({
-      where: { userId: null, providerId },
+    const existingKey = await this.prisma.ai_keys.findFirst({
+      where: { user_id: null, provider_id },
     });
 
     if (existingKey) {
@@ -242,14 +243,15 @@ export class AIKeysService {
       );
     }
 
-    return this.prisma.aIKey.create({
+    return this.prisma.ai_keys.create({
       data: {
-        providerId,
-        secretKey: this.encrypt(secretKey),
-        isActive: true,
+        provider_id,
+        secret_key: this.encrypt(secret_key),
+        is_active: true,
+        updated_at: new Date(),
       },
       include: {
-        provider: {
+        ai_providers: {
           select: {
             id: true,
             name: true,
@@ -262,8 +264,8 @@ export class AIKeysService {
 
   // Admin: Update system API key
   async updateSystemKey(keyId: number, updateKeyDto: UpdateAIKeyDto) {
-    const key = await this.prisma.aIKey.findFirst({
-      where: { id: keyId, userId: null },
+    const key = await this.prisma.ai_keys.findFirst({
+      where: { id: keyId, user_id: null },
     });
 
     if (!key) {
@@ -272,19 +274,19 @@ export class AIKeysService {
 
     const updateData: any = {};
     
-    if (updateKeyDto.secretKey) {
-      updateData.secretKey = this.encrypt(updateKeyDto.secretKey);
+    if (updateKeyDto.secret_key) {
+      updateData.secret_key = this.encrypt(updateKeyDto.secret_key);
     }
     
-    if (updateKeyDto.isActive !== undefined) {
-      updateData.isActive = updateKeyDto.isActive;
+    if (updateKeyDto.is_active !== undefined) {
+      updateData.is_active = updateKeyDto.is_active;
     }
 
-    return this.prisma.aIKey.update({
+    return this.prisma.ai_keys.update({
       where: { id: keyId },
       data: updateData,
       include: {
-        provider: {
+        ai_providers: {
           select: {
             id: true,
             name: true,
@@ -297,15 +299,15 @@ export class AIKeysService {
 
   // Admin: Delete system API key
   async deleteSystemKey(keyId: number) {
-    const key = await this.prisma.aIKey.findFirst({
-      where: { id: keyId, userId: null },
+    const key = await this.prisma.ai_keys.findFirst({
+      where: { id: keyId, user_id: null },
     });
 
     if (!key) {
       throw new NotFoundException('System API key not found');
     }
 
-    await this.prisma.aIKey.delete({
+    await this.prisma.ai_keys.delete({
       where: { id: keyId },
     });
 

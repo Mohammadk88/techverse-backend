@@ -68,7 +68,7 @@ export class SearchService {
           },
         },
         {
-          category: {
+          article_categories: {
             name: { contains: query, mode: 'insensitive' },
           },
         },
@@ -76,32 +76,32 @@ export class SearchService {
     };
 
     if (!includeInactive) {
-      whereCondition.isPublished = true;
+      whereCondition.is_published = true;
     }
 
-    const articles = await this.prisma.article.findMany({
+    const articles = await this.prisma.articles.findMany({
       where: whereCondition,
       take: limit,
       skip: offset,
       include: {
-        author: {
+        users: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             username: true,
             avatar: true,
           },
         },
-        category: {
+        article_categories: {
           select: {
             id: true,
             name: true,
           },
         },
-        tags: {
-          select: {
-            tag: {
+        article_tag_relations: {
+          include: {
+            article_tags: {
               select: {
                 id: true,
                 name: true,
@@ -118,7 +118,7 @@ export class SearchService {
       },
       orderBy: [
         { featured: 'desc' },
-        { createdAt: 'desc' },
+        { created_at: 'desc' },
       ],
     });
 
@@ -127,24 +127,24 @@ export class SearchService {
       title: article.title,
       description: article.excerpt || article.content?.substring(0, 200) + '...',
       type: 'article' as const,
-      avatar: article.featuredImage,
+      avatar: article.featured_image,
       author: {
-        id: article.author.id,
-        firstName: article.author.firstName,
-        lastName: article.author.lastName,
-        username: article.author.username,
+        id: article.users.id,
+        first_name: article.users.first_name,
+        last_name: article.users.last_name,
+        username: article.users.username,
       },
       metadata: {
-        category: article.category.name,
-        tags: article.tags.map((t) => t.tag.name),
+        article_categories: article.article_categories.name,
+        tags: article.article_tag_relations.map((t) => t.article_tags.name),
         featured: article.featured,
         reactionsCount: article._count.reactions,
         bookmarksCount: article._count.bookmarks,
-        languageCode: article.languageCode,
-        countryCode: article.countryCode,
-        isAI: article.isAI,
+        language_code: article.language_code,
+        country_code: article.country_code,
+        is_ai: article.is_ai,
       },
-      createdAt: article.createdAt,
+      created_at: article.created_at,
     }));
   }
 
@@ -161,8 +161,8 @@ export class SearchService {
         { 
           owner: {
             OR: [
-              { firstName: { contains: query, mode: 'insensitive' } },
-              { lastName: { contains: query, mode: 'insensitive' } },
+              { first_name: { contains: query, mode: 'insensitive' } },
+              { last_name: { contains: query, mode: 'insensitive' } },
               { username: { contains: query, mode: 'insensitive' } },
             ],
           },
@@ -170,21 +170,21 @@ export class SearchService {
       ],
     };
 
-    const cafes = await this.prisma.cafe.findMany({
+    const cafes = await this.prisma.cafes.findMany({
       where: whereCondition,
       take: limit,
       skip: offset,
       include: {
-        owner: {
+        users: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             username: true,
             avatar: true,
           },
         },
-        country: {
+        countries: {
           select: {
             name: true,
             code: true,
@@ -192,13 +192,13 @@ export class SearchService {
         },
         _count: {
           select: {
-            members: true,
-            posts: true,
+            cafe_members: true,
+            cafe_posts: true,
           },
         },
       },
       orderBy: [
-        { createdAt: 'desc' },
+        { created_at: 'desc' },
       ],
     });
 
@@ -207,20 +207,20 @@ export class SearchService {
       title: cafe.name,
       description: cafe.description,
       type: 'cafe' as const,
-      avatar: cafe.coverImage,
+      avatar: cafe.cover_image,
       author: {
-        id: cafe.owner.id,
-        firstName: cafe.owner.firstName,
-        lastName: cafe.owner.lastName,
-        username: cafe.owner.username,
+        id: cafe.users.id,
+        first_name: cafe.users.first_name,
+        last_name: cafe.users.last_name,
+        username: cafe.users.username,
       },
       metadata: {
-        country: cafe.country?.name,
-        membersCount: cafe._count.members,
-        postsCount: cafe._count.posts,
-        isPrivate: cafe.isPrivate,
+        countries: cafe.countries?.name,
+        membersCount: cafe._count.cafe_members,
+        postsCount: cafe._count.cafe_posts,
+        is_private: cafe.is_private,
       },
-      createdAt: cafe.createdAt,
+      created_at: cafe.created_at,
     }));
   }
 
@@ -232,8 +232,8 @@ export class SearchService {
   ): Promise<SearchResultItem[]> {
     const whereCondition: any = {
       OR: [
-        { firstName: { contains: query, mode: 'insensitive' } },
-        { lastName: { contains: query, mode: 'insensitive' } },
+        { first_name: { contains: query, mode: 'insensitive' } },
+        { last_name: { contains: query, mode: 'insensitive' } },
         { username: { contains: query, mode: 'insensitive' } },
         { email: { contains: query, mode: 'insensitive' } },
         { bio: { contains: query, mode: 'insensitive' } },
@@ -241,24 +241,24 @@ export class SearchService {
     };
 
     if (!includeInactive) {
-      whereCondition.isActive = true;
+      whereCondition.is_active = true;
     }
 
-    const users = await this.prisma.user.findMany({
+    const users = await this.prisma.users.findMany({
       where: whereCondition,
       take: limit,
       skip: offset,
       select: {
         id: true,
-        firstName: true,
-        lastName: true,
+        first_name: true,
+        last_name: true,
         username: true,
         avatar: true,
         bio: true,
-        role: true,
+        user_global_roles: true,
         xp: true,
-        techCoin: true,
-        country: {
+        tech_coin: true,
+        countries: {
           select: {
             name: true,
             code: true,
@@ -267,38 +267,38 @@ export class SearchService {
         _count: {
           select: {
             articles: true,
-            ownedCafes: true,
+            cafes: true,
           },
         },
-        createdAt: true,
+        created_at: true,
       },
       orderBy: [
         { xp: 'desc' },
-        { createdAt: 'desc' },
+        { created_at: 'desc' },
       ],
     });
 
     return users.map((user) => ({
       id: user.id,
-      title: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'مستخدم',
+      title: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || 'مستخدم',
       description: user.bio,
       type: 'user' as const,
       avatar: user.avatar,
       author: {
         id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        first_name: user.first_name,
+        last_name: user.last_name,
         username: user.username,
       },
       metadata: {
-        role: user.role,
+        role: user.user_global_roles,
         xp: user.xp,
-        techCoin: user.techCoin,
-        country: user.country?.name,
+        tech_coin: user.tech_coin,
+        countries: user.countries?.name,
         articlesCount: user._count.articles,
-        cafesCount: user._count.ownedCafes,
+        cafesCount: user._count.cafes,
       },
-      createdAt: user.createdAt,
+      created_at: user.created_at,
     }));
   }
 
@@ -307,7 +307,7 @@ export class SearchService {
     limit: number,
     offset: number,
   ): Promise<SearchResultItem[]> {
-    const tags = await this.prisma.articleTag.findMany({
+    const tags = await this.prisma.article_tags.findMany({
       where: {
         name: { contains: query, mode: 'insensitive' },
       },
@@ -316,12 +316,12 @@ export class SearchService {
       include: {
         _count: {
           select: {
-            articles: true,
+            article_tag_relations: true,
           },
         },
       },
       orderBy: [
-        { articles: { _count: 'desc' } },
+        { article_tag_relations: { _count: 'desc' } },
         { name: 'asc' },
       ],
     });
@@ -329,12 +329,12 @@ export class SearchService {
     return tags.map((tag) => ({
       id: tag.id,
       title: tag.name,
-      description: `علامة تحتوي على ${tag._count.articles} مقال`,
+      description: `علامة تحتوي على ${tag._count.article_tag_relations} مقال`,
       type: 'tag' as const,
       metadata: {
-        articlesCount: tag._count.articles,
+        articlesCount: tag._count.article_tag_relations,
       },
-      createdAt: tag.createdAt,
+      created_at: tag.created_at,
     }));
   }
 
@@ -367,10 +367,10 @@ export class SearchService {
     }> = [];
 
     // Get article title suggestions
-    const articles = await this.prisma.article.findMany({
+    const articles = await this.prisma.articles.findMany({
       where: {
         title: { contains: query, mode: 'insensitive' },
-        isPublished: true,
+        is_published: true,
       },
       select: { title: true },
       take: limit,
@@ -385,13 +385,13 @@ export class SearchService {
     });
 
     // Get tag suggestions
-    const tags = await this.prisma.articleTag.findMany({
+    const tags = await this.prisma.article_tags.findMany({
       where: {
         name: { contains: query, mode: 'insensitive' },
       },
       select: {
         name: true,
-        _count: { select: { articles: true } },
+        _count: { select: { article_tag_relations: true } },
       },
       take: limit,
     });
@@ -400,12 +400,12 @@ export class SearchService {
       suggestions.push({
         text: tag.name,
         type: 'tag',
-        count: tag._count.articles,
+        count: tag._count.article_tag_relations,
       });
     });
 
     // Get cafe name suggestions
-    const cafes = await this.prisma.cafe.findMany({
+    const cafes = await this.prisma.cafes.findMany({
       where: {
         name: { contains: query, mode: 'insensitive' },
       },

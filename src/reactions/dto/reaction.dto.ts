@@ -1,16 +1,16 @@
 import { IsEnum, IsOptional, IsInt, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ReactionType } from '@prisma/client';
+import { reaction_types } from '@prisma/client';
 import { Type } from 'class-transformer';
 
 export class CreateReactionDto {
   @ApiProperty({
-    enum: ReactionType,
+    enum: reaction_types,
     description: 'Type of reaction',
-    example: ReactionType.LIKE,
+    example: reaction_types.LIKE,
   })
-  @IsEnum(ReactionType)
-  type: ReactionType;
+  @IsEnum(reaction_types)
+  type: reaction_types;
 
   @ApiPropertyOptional({
     description: 'Article ID (for article reactions)',
@@ -20,7 +20,7 @@ export class CreateReactionDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  articleId?: number;
+  article_id?: number;
 
   @ApiPropertyOptional({
     description: 'Project ID (for project reactions)',
@@ -30,7 +30,7 @@ export class CreateReactionDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  projectId?: number;
+  project_id?: number;
 
   @ApiPropertyOptional({
     description: 'Challenge ID (for challenge reactions)',
@@ -71,14 +71,14 @@ export class ReactionStatsDto {
       ANGRY: 1,
     },
   })
-  breakdown: Record<ReactionType, number>;
+  breakdown: Record<reaction_types, number>;
 
   @ApiPropertyOptional({
-    enum: ReactionType,
+    enum: reaction_types,
     description: 'Current user reaction (if authenticated)',
-    example: ReactionType.LIKE,
+    example: reaction_types.LIKE,
   })
-  userReaction?: ReactionType;
+  userReaction?: reaction_types;
 }
 
 export class UserDto {
@@ -89,10 +89,10 @@ export class UserDto {
   username?: string | null;
 
   @ApiPropertyOptional({ description: 'First name', example: 'John' })
-  firstName?: string | null;
+  first_name?: string | null;
 
   @ApiPropertyOptional({ description: 'Last name', example: 'Doe' })
-  lastName?: string | null;
+  last_name?: string | null;
 
   @ApiPropertyOptional({ description: 'Avatar URL' })
   avatar?: string | null;
@@ -103,14 +103,14 @@ export class ReactionResponseDto {
   id: number;
 
   @ApiProperty({
-    enum: ReactionType,
+    enum: reaction_types,
     description: 'Type of reaction',
-    example: ReactionType.LIKE,
+    example: reaction_types.LIKE,
   })
-  type: ReactionType;
+  type: reaction_types;
 
   @ApiProperty({ description: 'User ID who made the reaction', example: 1 })
-  userId: number;
+  user_id: number;
 
   @ApiPropertyOptional({
     type: UserDto,
@@ -122,5 +122,5 @@ export class ReactionResponseDto {
     description: 'Reaction creation date',
     example: '2024-07-16T21:58:59.000Z',
   })
-  createdAt: Date;
+  created_at: Date;
 }

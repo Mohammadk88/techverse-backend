@@ -68,15 +68,15 @@ export class AIService {
   // Dynamic provider initialization with user/system keys
   private async initializeProvider(
     providerName: string,
-    userId?: number,
+    user_id?: number,
   ): Promise<{
     openai: OpenAI | null;
     gemini: GoogleGenerativeAI | null;
     claude: Anthropic | null;
   }> {
     // Get provider from database
-    const provider = await this.prisma.aIProvider.findFirst({
-      where: { name: providerName, isActive: true },
+    const provider = await this.prisma.ai_providers.findFirst({
+      where: { name: providerName, is_active: true },
     });
 
     if (!provider) {
@@ -89,7 +89,7 @@ export class AIService {
     // Get API key from our key management system
     const apiKey = await this.aiKeysService.getApiKeyForProvider(
       provider.id,
-      userId,
+      user_id,
     );
 
     if (!apiKey) {
@@ -169,17 +169,17 @@ export class AIService {
     prompt: string,
     provider: AIProvider = AIProvider.OPENAI,
     topic?: string,
-    userId?: number,
+    user_id?: number,
   ): Promise<AIArticleResponse> {
     const sanitizedPrompt = this.sanitizePrompt(prompt);
     
     // For enhanced functionality, use dynamic provider initialization
-    if (userId !== undefined) {
+    if (user_id !== undefined) {
       return this.generateArticleWithDynamicProvider(
         sanitizedPrompt,
         provider,
         topic,
-        userId,
+        user_id,
       );
     }
 
@@ -202,17 +202,17 @@ export class AIService {
     prompt: string,
     provider: AIProvider = AIProvider.OPENAI,
     mood?: string,
-    userId?: number,
+    user_id?: number,
   ): Promise<AIPostResponse> {
     const sanitizedPrompt = this.sanitizePrompt(prompt);
     
     // For enhanced functionality, use dynamic provider initialization
-    if (userId !== undefined) {
+    if (user_id !== undefined) {
       return this.generatePostWithDynamicProvider(
         sanitizedPrompt,
         provider,
         mood,
-        userId,
+        user_id,
       );
     }
 
@@ -236,10 +236,10 @@ export class AIService {
     prompt: string,
     provider: AIProvider,
     topic?: string,
-    userId?: number,
+    user_id?: number,
   ): Promise<AIArticleResponse> {
     const providerName = provider.toLowerCase();
-    const clients = await this.initializeProvider(providerName, userId);
+    const clients = await this.initializeProvider(providerName, user_id);
 
     switch (provider) {
       case AIProvider.OPENAI: {
@@ -292,10 +292,10 @@ export class AIService {
     prompt: string,
     provider: AIProvider,
     mood?: string,
-    userId?: number,
+    user_id?: number,
   ): Promise<AIPostResponse> {
     const providerName = provider.toLowerCase();
-    const clients = await this.initializeProvider(providerName, userId);
+    const clients = await this.initializeProvider(providerName, user_id);
 
     switch (provider) {
       case AIProvider.OPENAI: {

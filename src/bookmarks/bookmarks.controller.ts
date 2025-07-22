@@ -37,22 +37,22 @@ export class BookmarksController {
     schema: {
       example: {
         id: 15,
-        userId: 123,
-        articleId: 45,
-        createdAt: '2025-07-16T12:00:00Z',
+        user_id: 123,
+        article_id: 45,
+        created_at: '2025-07-16T12:00:00Z',
         article: {
           id: 45,
           title: 'Complete Guide to React Hooks',
           slug: 'complete-guide-react-hooks',
           excerpt: 'Learn everything about React Hooks...',
-          featuredImage: 'https://example.com/image.jpg',
-          publishedAt: '2025-07-15T10:00:00Z',
+          featured_image: 'https://example.com/image.jpg',
+          published_at: '2025-07-15T10:00:00Z',
           author: {
             id: 67,
             username: 'johndoe',
             avatar: null
           },
-          category: {
+          article_categories: {
             id: 3,
             name: 'Programming',
             slug: 'programming'
@@ -83,9 +83,9 @@ export class BookmarksController {
         bookmarks: [
           {
             id: 15,
-            userId: 123,
-            articleId: 45,
-            createdAt: '2025-07-16T12:00:00Z',
+            user_id: 123,
+            article_id: 45,
+            created_at: '2025-07-16T12:00:00Z',
             article: {
               id: 45,
               title: 'Complete Guide to React Hooks',
@@ -156,7 +156,7 @@ export class BookmarksController {
     return this.bookmarksService.deleteBookmark(+id, req.user.id);
   }
 
-  @Delete('article/:articleId')
+  @Delete('article/:article_id')
   @ApiOperation({ 
     summary: 'Remove article bookmark',
     description: 'Remove specific article from bookmarks by article ID'
@@ -171,7 +171,7 @@ export class BookmarksController {
     }
   })
   @ApiResponse({ status: 404, description: 'Bookmark not found' })
-  async removeArticleBookmark(@Param('articleId') articleId: string, @Request() req) {
-    return this.bookmarksService.removeArticleBookmark(req.user.id, +articleId);
+  async removeArticleBookmark(@Param('article_id') article_id: string, @Request() req) {
+    return this.bookmarksService.removeArticleBookmark(req.user.id, +article_id);
   }
 }

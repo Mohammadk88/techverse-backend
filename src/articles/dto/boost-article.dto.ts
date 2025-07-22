@@ -16,14 +16,14 @@ export class BoostArticleDto {
     example: '2024-07-17T00:00:00Z',
   })
   @IsDateString()
-  startDate: string;
+  start_date: string;
 
   @ApiProperty({
     description: 'تاريخ نهاية التعزيز',
     example: '2024-07-24T23:59:59Z',
   })
   @IsDateString()
-  endDate: string;
+  end_date: string;
 }
 
 export class ArticleBoostResponseDto {
@@ -31,19 +31,19 @@ export class ArticleBoostResponseDto {
   id: number;
 
   @ApiProperty({ description: 'معرف المقال' })
-  articleId: number;
+  article_id: number;
 
   @ApiProperty({ description: 'مقدار TechCoin المنفق' })
   coinSpent: number;
 
   @ApiProperty({ description: 'تاريخ بداية التعزيز' })
-  startDate: string;
+  start_date: string;
 
   @ApiProperty({ description: 'تاريخ نهاية التعزيز' })
-  endDate: string;
+  end_date: string;
 
   @ApiProperty({ description: 'تاريخ الإنشاء' })
-  createdAt: string;
+  created_at: string;
 
   @ApiProperty({ description: 'معلومات المقال' })
   article: {

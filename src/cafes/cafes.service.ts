@@ -3,7 +3,7 @@ import { PrismaService } from '../database/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { CreateCafeDto, UpdateCafeDto, CreateCafePostDto, UpdateCafePostDto, CafeFilterDto } from './dto/cafe.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { UserRole } from '@prisma/client';
+import { user_roles } from '@prisma/client';
 import { ContentQueryService } from '../common/services/content-query.service';
 
 @Injectable()
@@ -17,10 +17,10 @@ export class CafesService {
   ) {}
 
   // Cafe Management
-  async create(createCafeDto: CreateCafeDto, ownerId: number) {
+  async create(createCafeDto: CreateCafeDto, owner_id: number) {
     // Check if user has enough TechCoin
     const hasEnough = await this.walletService.hasEnoughTechCoin(
-      ownerId,
+      owner_id,
       this.CAFE_CREATION_COST,
     );
 
@@ -34,7 +34,7 @@ export class CafesService {
     const slug = this.generateSlug(createCafeDto.name);
     
     // Check if slug already exists
-    const existingCafe = await this.prisma.cafe.findUnique({
+    const existingCafe = await this.prisma.cafes.findUnique({
       where: { slug },
     });
 
@@ -43,19 +43,20 @@ export class CafesService {
     }
 
     // Deduct TechCoin for cafe creation
-    await this.walletService.spendTechCoin(ownerId, {
+    await this.walletService.spendTechCoin(owner_id, {
       amount: this.CAFE_CREATION_COST,
       description: `Created cafe: ${createCafeDto.name}`,
     });
 
-    const cafe = await this.prisma.cafe.create({
+    const cafe = await this.prisma.cafes.create({
       data: {
         ...createCafeDto,
         slug,
-        ownerId,
+        owner_id,
+        updated_at: new Date(),
       },
       include: {
-        owner: {
+        users: {
           select: {
             id: true,
             username: true,
@@ -64,25 +65,25 @@ export class CafesService {
         },
         _count: {
           select: {
-            members: true,
-            posts: true,
+            cafe_members: true,
+            cafe_posts: true,
           },
         },
       },
     });
 
     // Auto-join the owner as a member
-    await this.prisma.cafeMember.create({
+    await this.prisma.cafe_members.create({
       data: {
-        cafeId: cafe.id,
-        userId: ownerId,
+        cafe_id: cafe.id,
+        user_id: owner_id,
       },
     });
 
     return {
       ...cafe,
-      membersCount: cafe._count.members + 1, // +1 for the owner
-      postsCount: cafe._count.posts,
+      membersCount: cafe._count.cafe_members + 1, // +1 for the owner
+      postsCount: cafe._count.cafe_posts,
     };
   }
 
@@ -90,11 +91,11 @@ export class CafesService {
     const { page = 1, limit = 10 } = paginationDto;
     const { 
       search, 
-      isPrivate, 
-      ownerId, 
+      is_private, 
+      owner_id, 
       popular,
-      languageCode,
-      countryCode
+      language_code,
+      country_code
     } = filterDto || {};
     
     const where: any = {};
@@ -106,33 +107,33 @@ export class CafesService {
       ];
     }
     
-    if (isPrivate !== undefined) where.isPrivate = isPrivate;
-    if (ownerId) where.ownerId = ownerId;
+    if (is_private !== undefined) where.is_private = is_private;
+    if (owner_id) where.owner_id = owner_id;
 
     // Add localization filtering
-    if (languageCode || countryCode) {
+    if (language_code || country_code) {
       const localizedWhere = this.contentQueryService.createLocalizedWhereClause({
-        languageCode,
-        countryCode,
+        language_code,
+        country_code,
       });
       Object.assign(where, localizedWhere);
     }
 
     // Handle popular cafes (example: cafes with more members)
-    let orderBy: any = { createdAt: 'desc' };
+    let orderBy: any = { created_at: 'desc' };
     if (popular) {
       orderBy = {
-        members: {
+        cafe_members: {
           _count: 'desc',
         },
       };
     }
 
     const [cafes, total] = await Promise.all([
-      this.prisma.cafe.findMany({
+      this.prisma.cafes.findMany({
         where,
         include: {
-          owner: {
+          users: {
             select: {
               id: true,
               username: true,
@@ -141,8 +142,8 @@ export class CafesService {
           },
           _count: {
             select: {
-              members: true,
-              posts: true,
+              cafe_members: true,
+              cafe_posts: true,
             },
           },
         },
@@ -150,13 +151,13 @@ export class CafesService {
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.cafe.count({ where }),
+      this.prisma.cafes.count({ where }),
     ]);
 
     const transformedCafes = cafes.map((cafe) => ({
       ...cafe,
-      membersCount: cafe._count.members,
-      postsCount: cafe._count.posts,
+      membersCount: cafe._count.cafe_members,
+      postsCount: cafe._count.cafe_posts,
     }));
 
     return {
@@ -171,19 +172,19 @@ export class CafesService {
   }
 
   async findOne(id: number) {
-    const cafe = await this.prisma.cafe.findUnique({
+    const cafe = await this.prisma.cafes.findUnique({
       where: { id },
       include: {
-        owner: {
+        users: {
           select: {
             id: true,
             username: true,
             email: true,
           },
         },
-        members: {
+        cafe_members: {
           include: {
-            user: {
+            users: {
               select: {
                 id: true,
                 username: true,
@@ -191,11 +192,11 @@ export class CafesService {
               },
             },
           },
-          orderBy: { joinedAt: 'asc' },
+          orderBy: { joined_at: 'asc' },
         },
         _count: {
           select: {
-            posts: true,
+            cafe_posts: true,
           },
         },
       },
@@ -207,25 +208,25 @@ export class CafesService {
 
     return {
       ...cafe,
-      membersCount: cafe.members.length,
-      postsCount: cafe._count.posts,
+      membersCount: cafe.cafe_members.length,
+      postsCount: cafe._count.cafe_posts,
     };
   }
 
   async findBySlug(slug: string) {
-    const cafe = await this.prisma.cafe.findUnique({
+    const cafe = await this.prisma.cafes.findUnique({
       where: { slug },
       include: {
-        owner: {
+        users: {
           select: {
             id: true,
             username: true,
             email: true,
           },
         },
-        members: {
+        cafe_members: {
           include: {
-            user: {
+            users: {
               select: {
                 id: true,
                 username: true,
@@ -233,11 +234,11 @@ export class CafesService {
               },
             },
           },
-          orderBy: { joinedAt: 'asc' },
+          orderBy: { joined_at: 'asc' },
         },
         _count: {
           select: {
-            posts: true,
+            cafe_posts: true,
           },
         },
       },
@@ -249,16 +250,16 @@ export class CafesService {
 
     return {
       ...cafe,
-      membersCount: cafe.members.length,
-      postsCount: cafe._count.posts,
+      membersCount: cafe.cafe_members.length,
+      postsCount: cafe._count.cafe_posts,
     };
   }
 
-  async update(id: number, updateCafeDto: UpdateCafeDto, user: { id: number; role: UserRole }) {
+  async update(id: number, updateCafeDto: UpdateCafeDto, user: { id: number; role: user_roles }) {
     const cafe = await this.findOne(id);
 
     // Check if user can update this cafe
-    if (cafe.ownerId !== user.id && user.role !== UserRole.BARISTA) {
+    if (cafe.owner_id !== user.id && user.role !== user_roles.BARISTA) {
       throw new ForbiddenException('You can only update your own cafes');
     }
 
@@ -267,7 +268,7 @@ export class CafesService {
       slug = this.generateSlug(updateCafeDto.name);
       
       // Check if new slug already exists
-      const existingCafe = await this.prisma.cafe.findUnique({
+      const existingCafe = await this.prisma.cafes.findUnique({
         where: { slug },
       });
 
@@ -276,14 +277,14 @@ export class CafesService {
       }
     }
 
-    const updatedCafe = await this.prisma.cafe.update({
+    const updatedCafe = await this.prisma.cafes.update({
       where: { id },
       data: {
         ...updateCafeDto,
         slug,
       },
       include: {
-        owner: {
+        users: {
           select: {
             id: true,
             username: true,
@@ -292,8 +293,8 @@ export class CafesService {
         },
         _count: {
           select: {
-            members: true,
-            posts: true,
+            cafe_members: true,
+            cafe_posts: true,
           },
         },
       },
@@ -301,20 +302,20 @@ export class CafesService {
 
     return {
       ...updatedCafe,
-      membersCount: updatedCafe._count.members,
-      postsCount: updatedCafe._count.posts,
+      membersCount: updatedCafe._count.cafe_members,
+      postsCount: updatedCafe._count.cafe_posts,
     };
   }
 
-  async remove(id: number, user: { id: number; role: UserRole }) {
+  async remove(id: number, user: { id: number; role: user_roles }) {
     const cafe = await this.findOne(id);
 
     // Check if user can delete this cafe
-    if (cafe.ownerId !== user.id && user.role !== UserRole.BARISTA) {
+    if (cafe.owner_id !== user.id && user.role !== user_roles.BARISTA) {
       throw new ForbiddenException('You can only delete your own cafes');
     }
 
-    await this.prisma.cafe.delete({
+    await this.prisma.cafes.delete({
       where: { id },
     });
 
@@ -322,19 +323,19 @@ export class CafesService {
   }
 
   // Member Management
-  async joinCafe(cafeId: number, userId: number) {
-    const cafe = await this.findOne(cafeId);
+  async joinCafe(cafe_id: number, user_id: number) {
+    const cafe = await this.findOne(cafe_id);
 
-    if (cafe.isPrivate) {
+    if (cafe.is_private) {
       throw new ForbiddenException('This cafe is private');
     }
 
     // Check if already a member
-    const existingMembership = await this.prisma.cafeMember.findUnique({
+    const existingMembership = await this.prisma.cafe_members.findUnique({
       where: {
-        cafeId_userId: {
-          cafeId,
-          userId,
+        cafe_id_user_id: {
+          cafe_id,
+          user_id,
         },
       },
     });
@@ -343,29 +344,29 @@ export class CafesService {
       throw new BadRequestException('Already a member of this cafe');
     }
 
-    await this.prisma.cafeMember.create({
+    await this.prisma.cafe_members.create({
       data: {
-        cafeId,
-        userId,
+        cafe_id,
+        user_id,
       },
     });
 
     return { message: 'Successfully joined cafe' };
   }
 
-  async leaveCafe(cafeId: number, userId: number) {
-    const cafe = await this.findOne(cafeId);
+  async leaveCafe(cafe_id: number, user_id: number) {
+    const cafe = await this.findOne(cafe_id);
 
     // Check if owner is trying to leave
-    if (cafe.ownerId === userId) {
+    if (cafe.owner_id === user_id) {
       throw new ForbiddenException('Cafe owner cannot leave the cafe');
     }
 
-    const membership = await this.prisma.cafeMember.findUnique({
+    const membership = await this.prisma.cafe_members.findUnique({
       where: {
-        cafeId_userId: {
-          cafeId,
-          userId,
+        cafe_id_user_id: {
+          cafe_id,
+          user_id,
         },
       },
     });
@@ -374,11 +375,11 @@ export class CafesService {
       throw new BadRequestException('Not a member of this cafe');
     }
 
-    await this.prisma.cafeMember.delete({
+    await this.prisma.cafe_members.delete({
       where: {
-        cafeId_userId: {
-          cafeId,
-          userId,
+        cafe_id_user_id: {
+          cafe_id,
+          user_id,
         },
       },
     });
@@ -387,15 +388,15 @@ export class CafesService {
   }
 
   // Cafe Posts Management
-  async createPost(cafeId: number, createCafePostDto: CreateCafePostDto, authorId: number) {
-    const cafe = await this.findOne(cafeId);
+  async createPost(cafe_id: number, createCafePostDto: CreateCafePostDto, author_id: number) {
+    const cafe = await this.findOne(cafe_id);
 
     // Check if user is a member
-    const membership = await this.prisma.cafeMember.findUnique({
+    const membership = await this.prisma.cafe_members.findUnique({
       where: {
-        cafeId_userId: {
-          cafeId,
-          userId: authorId,
+        cafe_id_user_id: {
+          cafe_id,
+          user_id: author_id,
         },
       },
     });
@@ -404,21 +405,22 @@ export class CafesService {
       throw new ForbiddenException('You must be a member to post in this cafe');
     }
 
-    const post = await this.prisma.cafePost.create({
+    const post = await this.prisma.cafe_posts.create({
       data: {
         ...createCafePostDto,
-        cafeId,
-        authorId,
+        cafe_id,
+        author_id,
+        updated_at: new Date(),
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             username: true,
             email: true,
           },
         },
-        cafe: {
+        cafes: {
           select: {
             id: true,
             name: true,
@@ -431,14 +433,14 @@ export class CafesService {
     return post;
   }
 
-  async getCafePosts(cafeId: number, paginationDto: PaginationDto) {
+  async getCafePosts(cafe_id: number, paginationDto: PaginationDto) {
     const { page = 1, limit = 10 } = paginationDto;
 
     const [posts, total] = await Promise.all([
-      this.prisma.cafePost.findMany({
-        where: { cafeId },
+      this.prisma.cafe_posts.findMany({
+        where: { cafe_id },
         include: {
-          author: {
+          users: {
             select: {
               id: true,
               username: true,
@@ -446,11 +448,11 @@ export class CafesService {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.cafePost.count({ where: { cafeId } }),
+      this.prisma.cafe_posts.count({ where: { cafe_id } }),
     ]);
 
     return {
@@ -464,11 +466,11 @@ export class CafesService {
     };
   }
 
-  async updateCafePost(postId: number, updateCafePostDto: UpdateCafePostDto, user: { id: number; role: UserRole }) {
-    const post = await this.prisma.cafePost.findUnique({
+  async updateCafePost(postId: number, updateCafePostDto: UpdateCafePostDto, user: { id: number; role: user_roles }) {
+    const post = await this.prisma.cafe_posts.findUnique({
       where: { id: postId },
       include: {
-        cafe: true,
+        cafes: true,
       },
     });
 
@@ -477,22 +479,22 @@ export class CafesService {
     }
 
     // Check if user can update this post
-    if (post.authorId !== user.id && post.cafe.ownerId !== user.id && user.role !== UserRole.BARISTA) {
+    if (post.author_id !== user.id && post.cafes.owner_id !== user.id && user.role !== user_roles.BARISTA) {
       throw new ForbiddenException('You can only update your own posts');
     }
 
-    const updatedPost = await this.prisma.cafePost.update({
+    const updatedPost = await this.prisma.cafe_posts.update({
       where: { id: postId },
       data: updateCafePostDto,
       include: {
-        author: {
+        users: {
           select: {
             id: true,
             username: true,
             email: true,
           },
         },
-        cafe: {
+        cafes: {
           select: {
             id: true,
             name: true,
@@ -505,11 +507,11 @@ export class CafesService {
     return updatedPost;
   }
 
-  async deleteCafePost(postId: number, user: { id: number; role: UserRole }) {
-    const post = await this.prisma.cafePost.findUnique({
+  async deleteCafePost(postId: number, user: { id: number; role: user_roles }) {
+    const post = await this.prisma.cafe_posts.findUnique({
       where: { id: postId },
       include: {
-        cafe: true,
+        cafes: true,
       },
     });
 
@@ -518,11 +520,11 @@ export class CafesService {
     }
 
     // Check if user can delete this post
-    if (post.authorId !== user.id && post.cafe.ownerId !== user.id && user.role !== UserRole.BARISTA) {
+    if (post.author_id !== user.id && post.cafes.owner_id !== user.id && user.role !== user_roles.BARISTA) {
       throw new ForbiddenException('You can only delete your own posts');
     }
 
-    await this.prisma.cafePost.delete({
+    await this.prisma.cafe_posts.delete({
       where: { id: postId },
     });
 

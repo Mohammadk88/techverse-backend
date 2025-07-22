@@ -14,30 +14,30 @@ async function main() {
   console.log('🧹 Cleaning existing data...');
   
   // Clean project-related data first
-  await prisma.task_payments.deleteMany();
-  await prisma.task_assignments.deleteMany();
-  await prisma.task_applications.deleteMany();
-  await prisma.project_tasks.deleteMany();
-  await prisma.projects.deleteMany();
+  await prisma.taskPayment.deleteMany();
+  await prisma.taskAssignment.deleteMany();
+  await prisma.taskApplication.deleteMany();
+  await prisma.projectTask.deleteMany();
+  await prisma.project.deleteMany();
   
   // Clean other data
-  await prisma.article_tag_relations.deleteMany();
-  await prisma.bookmarks.deleteMany();
-  await prisma.cafe_posts.deleteMany();
-  await prisma.cafe_members.deleteMany();
-  await prisma.cafes.deleteMany();
-  await prisma.articles.deleteMany();
-  await prisma.article_tags.deleteMany();
-  await prisma.article_categories.deleteMany();
-  await prisma.user_cafe_roles.deleteMany();
-  await prisma.user_global_roles.deleteMany();
-  await prisma.cafe_roles.deleteMany();
-  await prisma.global_roles.deleteMany();
-  await prisma.ai_keys.deleteMany();
-  await prisma.users.deleteMany();
-  await prisma.cities.deleteMany();
-  await prisma.countries.deleteMany();
-  await prisma.languages.deleteMany();
+  await prisma.articleTagRelation.deleteMany();
+  await prisma.bookmark.deleteMany();
+  await prisma.cafePost.deleteMany();
+  await prisma.cafeMember.deleteMany();
+  await prisma.cafe.deleteMany();
+  await prisma.article.deleteMany();
+  await prisma.articleTag.deleteMany();
+  await prisma.articleCategory.deleteMany();
+  await prisma.userCafeRole.deleteMany();
+  await prisma.userGlobalRole.deleteMany();
+  await prisma.cafeRole.deleteMany();
+  await prisma.globalRole.deleteMany();
+  await prisma.aIKey.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.city.deleteMany();
+  await prisma.country.deleteMany();
+  await prisma.language.deleteMany();
 
   // 1. Seed Languages
   console.log('🌍 Seeding languages...');
@@ -51,57 +51,41 @@ async function main() {
 
   const createdLanguages: any[] = [];
   for (const lang of languages) {
-    const language = await prisma.languages.create({ 
-      data: {
-        ...lang,
-        native_name: lang.nativeName,
-        updated_at: new Date()
-      }
-    });
+    const language = await prisma.language.create({ data: lang });
     createdLanguages.push(language);
   }
 
   // 2. Seed Countries
   console.log('🏁 Seeding countries...');
   const countries = [
-    { name: 'United States', code: 'US', language_id: createdLanguages[0].id },
-    { name: 'Syria', code: 'SY', language_id: createdLanguages[1].id },
-    { name: 'Turkey', code: 'TR', language_id: createdLanguages[2].id },
-    { name: 'France', code: 'FR', language_id: createdLanguages[3].id },
-    { name: 'Spain', code: 'ES', language_id: createdLanguages[4].id },
-    { name: 'Saudi Arabia', code: 'SA', language_id: createdLanguages[1].id },
+    { name: 'United States', code: 'US', languageId: createdLanguages[0].id },
+    { name: 'Syria', code: 'SY', languageId: createdLanguages[1].id },
+    { name: 'Turkey', code: 'TR', languageId: createdLanguages[2].id },
+    { name: 'France', code: 'FR', languageId: createdLanguages[3].id },
+    { name: 'Spain', code: 'ES', languageId: createdLanguages[4].id },
+    { name: 'Saudi Arabia', code: 'SA', languageId: createdLanguages[1].id },
   ];
 
   const createdCountries: any[] = [];
   for (const country of countries) {
-    const createdCountry = await prisma.countries.create({ 
-      data: {
-        ...country,
-        updated_at: new Date()
-      }
-    });
+    const createdCountry = await prisma.country.create({ data: country });
     createdCountries.push(createdCountry);
   }
 
   // 3. Seed Cities
   console.log('🏙️ Seeding cities...');
   const cities = [
-    { name: 'New York', country_id: createdCountries[0].id },
-    { name: 'Damascus', country_id: createdCountries[1].id },
-    { name: 'Istanbul', country_id: createdCountries[2].id },
-    { name: 'Paris', country_id: createdCountries[3].id },
-    { name: 'Madrid', country_id: createdCountries[4].id },
-    { name: 'Riyadh', country_id: createdCountries[5].id },
+    { name: 'New York', countryId: createdCountries[0].id },
+    { name: 'Damascus', countryId: createdCountries[1].id },
+    { name: 'Istanbul', countryId: createdCountries[2].id },
+    { name: 'Paris', countryId: createdCountries[3].id },
+    { name: 'Madrid', countryId: createdCountries[4].id },
+    { name: 'Riyadh', countryId: createdCountries[5].id },
   ];
 
   const createdCities: any[] = [];
   for (const city of cities) {
-    const createdCity = await prisma.cities.create({ 
-      data: {
-        ...city,
-        updated_at: new Date()
-      }
-    });
+    const createdCity = await prisma.city.create({ data: city });
     createdCities.push(createdCity);
   }
 
@@ -110,57 +94,55 @@ async function main() {
   const hashedPassword = await bcrypt.hash('password123', 10);
   
   const users: any[] = [];
-  const userRoles = [user_roles.MEMBER, user_roles.THINKER, user_roles.JOURNALIST, user_roles.BARISTA];
+  const userRoles = [UserRole.MEMBER, UserRole.THINKER, UserRole.JOURNALIST, UserRole.BARISTA];
   
   for (let i = 0; i < 20; i++) {
     const randomLanguage = faker.helpers.arrayElement(createdLanguages);
     const randomCountry = faker.helpers.arrayElement(createdCountries);
     const randomCity = faker.helpers.arrayElement(createdCities);
     
-    const user = await prisma.users.create({
+    const user = await prisma.user.create({
       data: {
         email: faker.internet.email(),
         password: hashedPassword,
-        first_name: faker.person.firstName(),
-        last_name: faker.person.lastName(),
+        firstName: faker.person.firstName(),
+        lastName: faker.person.lastName(),
         username: faker.internet.username(),
         avatar: faker.image.avatar(),
         bio: faker.lorem.paragraph(2),
         role: faker.helpers.arrayElement(userRoles),
         xp: faker.number.int({ min: 0, max: 1000 }),
-        tech_coin: faker.number.int({ min: 50, max: 500 }), // Random TechCoin balance
-        language_id: randomLanguage.id,
-        country_id: randomCountry.id,
-        city_id: randomCity.id,
-        is_active: true,
-        email_verified: faker.datatype.boolean(0.9),
-        created_at: faker.date.past({ years: 2 }),
-        updated_at: new Date(),
+        techCoin: faker.number.int({ min: 50, max: 500 }), // Random TechCoin balance
+        languageId: randomLanguage.id,
+        countryId: randomCountry.id,
+        cityId: randomCity.id,
+        isActive: true,
+        emailVerified: faker.datatype.boolean(0.9),
+        createdAt: faker.date.past({ years: 2 }),
       },
     });
     users.push(user);
   }
 
   // Create admin user
-  const adminUser = await prisma.users.create({
+  const adminUser = await prisma.user.create({
     data: {
       email: 'admin@techverse.com',
       password: hashedPassword,
-      first_name: 'Admin',
-      last_name: 'User',
+      firstName: 'Admin',
+      lastName: 'User',
       username: 'admin',
       avatar: faker.image.avatar(),
       bio: 'TechVerse Platform Administrator - Building the future of tech communities',
-      role: user_roles.BARISTA,
+      role: UserRole.BARISTA,
       xp: 5000,
-      tech_coin: 1000, // Admin gets more TechCoin
-      language_id: createdLanguages[0].id,
-      country_id: createdCountries[0].id,
-      city_id: createdCities[0].id,
-      is_active: true,
-      email_verified: true,
-      created_at: new Date(),
-      updated_at: new Date(),
+      techCoin: 1000, // Admin gets more TechCoin
+      languageId: createdLanguages[0].id,
+      countryId: createdCountries[0].id,
+      cityId: createdCities[0].id,
+      isActive: true,
+      emailVerified: true,
+      createdAt: new Date(),
     },
   });
   users.push(adminUser);
@@ -183,15 +165,14 @@ async function main() {
 
   for (let i = 0; i < 10; i++) {
     const owner = faker.helpers.arrayElement(users);
-    const project = await prisma.projects.create({
+    const project = await prisma.project.create({
       data: {
         title: faker.helpers.arrayElement(projectTitles),
         description: faker.lorem.paragraphs(2),
-        is_public: faker.datatype.boolean(0.8), // 80% public
+        isPublic: faker.datatype.boolean(0.8), // 80% public
         status: faker.helpers.arrayElement(['OPEN', 'IN_PROGRESS', 'COMPLETED']),
-        owner_id: owner.id,
-        created_at: faker.date.past({ years: 1 }),
-        updated_at: new Date(),
+        ownerId: owner.id,
+        createdAt: faker.date.past({ years: 1 }),
       },
     });
     projects.push(project);
@@ -220,15 +201,14 @@ async function main() {
   for (const project of projects) {
     const numTasks = faker.number.int({ min: 2, max: 6 });
     for (let i = 0; i < numTasks; i++) {
-      const task = await prisma.project_tasks.create({
+      const task = await prisma.projectTask.create({
         data: {
           title: faker.helpers.arrayElement(taskTitles),
           description: faker.lorem.paragraphs(1),
           price: faker.number.int({ min: 10, max: 200 }), // 10-200 TechCoin
           status: faker.helpers.arrayElement(['PENDING', 'ASSIGNED', 'DONE']),
-          project_id: project.id,
-          created_at: faker.date.between({ from: project.created_at, to: new Date() }),
-          updated_at: new Date(),
+          projectId: project.id,
+          createdAt: faker.date.between({ from: project.createdAt, to: new Date() }),
         },
       });
 
@@ -238,15 +218,15 @@ async function main() {
         for (let j = 0; j < numApplications; j++) {
           const applicant = faker.helpers.arrayElement(users.filter(u => u.id !== project.ownerId));
           try {
-            await prisma.task_applications.create({
+            await prisma.taskApplication.create({
               data: {
-                task_id: task.id,
-                applicant_id: applicant.id,
+                taskId: task.id,
+                applicantId: applicant.id,
                 message: faker.lorem.paragraph(),
-                created_at: faker.date.between({ from: task.created_at, to: new Date() }),
+                createdAt: faker.date.between({ from: task.createdAt, to: new Date() }),
               },
             });
-          } catch (_error) {
+          } catch (error) {
             // Skip if user already applied
           }
         }
@@ -254,23 +234,23 @@ async function main() {
 
       // Add assignments for assigned/done tasks
       if (task.status === 'ASSIGNED' || task.status === 'DONE') {
-        const assignee = faker.helpers.arrayElement(users.filter(u => u.id !== project.owner_id));
-        await prisma.task_assignments.create({
+        const assignee = faker.helpers.arrayElement(users.filter(u => u.id !== project.ownerId));
+        await prisma.taskAssignment.create({
           data: {
-            task_id: task.id,
-            user_id: assignee.id,
-            assigned_at: faker.date.between({ from: task.created_at, to: new Date() }),
+            taskId: task.id,
+            userId: assignee.id,
+            assignedAt: faker.date.between({ from: task.createdAt, to: new Date() }),
           },
         });
 
         // Add payment record
-        await prisma.task_payments.create({
+        await prisma.taskPayment.create({
           data: {
-            task_id: task.id,
-            user_id: assignee.id,
+            taskId: task.id,
+            userId: assignee.id,
             amount: task.price,
-            is_paid: task.status === 'DONE',
-            paid_at: task.status === 'DONE' ? faker.date.between({ from: task.created_at, to: new Date() }) : null,
+            isPaid: task.status === 'DONE',
+            paidAt: task.status === 'DONE' ? faker.date.between({ from: task.createdAt, to: new Date() }) : null,
           },
         });
       }

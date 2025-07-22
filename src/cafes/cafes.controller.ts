@@ -39,13 +39,13 @@ export class CafesController {
         name: 'JavaScript Developers',
         description: 'A community for JS developers to share and learn',
         slug: 'javascript-developers',
-        isPrivate: false,
+        is_private: false,
         memberCount: 1,
         createdBy: {
           id: 123,
           username: 'johndoe',
         },
-        createdAt: '2025-07-16T15:00:00Z',
+        created_at: '2025-07-16T15:00:00Z',
       },
     },
   })
@@ -66,10 +66,10 @@ export class CafesController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'isPrivate', required: false, type: Boolean })
+  @ApiQuery({ name: 'is_private', required: false, type: Boolean })
   @ApiQuery({ name: 'popular', required: false, type: Boolean })
-  @ApiQuery({ name: 'languageCode', required: false, type: String })
-  @ApiQuery({ name: 'countryCode', required: false, type: String })
+  @ApiQuery({ name: 'language_code', required: false, type: String })
+  @ApiQuery({ name: 'country_code', required: false, type: String })
   async findAll(@Query() filterDto: CafeFilterDto) {
     const { page, limit, ...filters } = filterDto;
     const paginationDto = { page, limit };

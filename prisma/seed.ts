@@ -43,10 +43,18 @@ async function main() {
 
   console.log('🔤 Creating languages...');
   for (const lang of languages) {
-    await prisma.language.upsert({
+    await prisma.languages.upsert({
       where: { code: lang.code },
-      update: lang,
-      create: lang,
+      update: {
+        ...lang,
+        native_name: lang.nativeName,
+        updated_at: new Date()
+      },
+      create: {
+        ...lang,
+        native_name: lang.nativeName,
+        updated_at: new Date()
+      },
     });
   }
   console.log(`✅ ${languages.length} languages created!`);
@@ -142,7 +150,7 @@ async function main() {
 
   console.log('🌍 Creating countries...');
   for (const country of countries) {
-    await prisma.country.upsert({
+    await prisma.countries.upsert({
       where: { code: country.code },
       update: {
         name: country.name,
@@ -150,9 +158,10 @@ async function main() {
       create: {
         name: country.name,
         code: country.code,
-        language: {
+        languages: {
           connect: { code: country.languageCode },
         },
+        updated_at: new Date(),
       },
     });
   }
@@ -382,16 +391,16 @@ async function main() {
   let cityCount = 0;
   for (const city of cities) {
     // Get country by code first
-    const country = await prisma.country.findUnique({
+    const country = await prisma.countries.findUnique({
       where: { code: city.countryCode },
     });
     
     if (country) {
-      await prisma.city.upsert({
+      await prisma.cities.upsert({
         where: {
-          name_countryId: {
+          name_country_id: {
             name: city.name,
-            countryId: country.id,
+            country_id: country.id,
           },
         },
         update: {
@@ -399,7 +408,8 @@ async function main() {
         },
         create: {
           name: city.name,
-          countryId: country.id,
+          country_id: country.id,
+          updated_at: new Date(),
         },
       });
       cityCount++;
@@ -413,40 +423,44 @@ async function main() {
   console.log('👥 Creating roles...');
 
   // Create default global roles
-  const memberRole = await prisma.globalRole.upsert({
+  const memberRole = await prisma.global_roles.upsert({
     where: { name: 'MEMBER' },
     update: {},
     create: {
       name: 'MEMBER',
       description: 'Default member role',
+      updated_at: new Date(),
     },
   });
 
-  const adminRole = await prisma.globalRole.upsert({
+  const adminRole = await prisma.global_roles.upsert({
     where: { name: 'ADMIN' },
     update: {},
     create: {
       name: 'ADMIN',
       description: 'Administrator role',
+      updated_at: new Date(),
     },
   });
 
   // Create default café roles
-  const cafeBarista = await prisma.cafeRole.upsert({
+  const cafeBarista = await prisma.cafe_roles.upsert({
     where: { name: 'Barista' },
     update: {},
     create: {
       name: 'Barista',
       description: 'Café manager role',
+      updated_at: new Date(),
     },
   });
 
-  const cafeMember = await prisma.cafeRole.upsert({
+  const cafeMember = await prisma.cafe_roles.upsert({
     where: { name: 'Member' },
     update: {},
     create: {
       name: 'Member',
       description: 'Café member role',
+      updated_at: new Date(),
     },
   });
 
@@ -462,21 +476,71 @@ async function main() {
   console.log('📚 Creating article categories...');
   
   const categories = [
-    { name: 'Programming', slug: 'programming', description: 'Programming languages, frameworks, and development' },
-    { name: 'Web Development', slug: 'web-development', description: 'Frontend, backend, and full-stack web development' },
-    { name: 'Mobile Development', slug: 'mobile-development', description: 'iOS, Android, and cross-platform mobile development' },
-    { name: 'Data Science', slug: 'data-science', description: 'Data analysis, machine learning, and AI' },
-    { name: 'DevOps', slug: 'devops', description: 'CI/CD, containerization, and deployment strategies' },
-    { name: 'Cybersecurity', slug: 'cybersecurity', description: 'Security practices, ethical hacking, and privacy' },
-    { name: 'Cloud Computing', slug: 'cloud-computing', description: 'AWS, Azure, GCP, and cloud architectures' },
-    { name: 'Blockchain', slug: 'blockchain', description: 'Cryptocurrency, DeFi, and blockchain technology' },
-    { name: 'UI/UX Design', slug: 'ui-ux-design', description: 'User interface and user experience design' },
-    { name: 'Career & Learning', slug: 'career-learning', description: 'Tech careers, learning resources, and industry insights' },
+    { 
+      name: 'Programming', 
+      slug: 'programming', 
+      description: 'Programming languages, frameworks, and development',
+      updated_at: new Date(),
+    },
+    { 
+      name: 'Web Development', 
+      slug: 'web-development', 
+      description: 'Frontend, backend, and full-stack web development',
+      updated_at: new Date(),
+    },
+    { 
+      name: 'Mobile Development', 
+      slug: 'mobile-development', 
+      description: 'iOS, Android, and cross-platform mobile development',
+      updated_at: new Date(),
+    },
+    { 
+      name: 'Data Science', 
+      slug: 'data-science', 
+      description: 'Data analysis, machine learning, and AI',
+      updated_at: new Date(),
+    },
+    { 
+      name: 'DevOps', 
+      slug: 'devops', 
+      description: 'CI/CD, containerization, and deployment strategies',
+      updated_at: new Date(),
+    },
+    { 
+      name: 'Cybersecurity', 
+      slug: 'cybersecurity', 
+      description: 'Security practices, ethical hacking, and privacy',
+      updated_at: new Date(),
+    },
+    { 
+      name: 'Cloud Computing', 
+      slug: 'cloud-computing', 
+      description: 'AWS, Azure, GCP, and cloud architectures',
+      updated_at: new Date(),
+    },
+    { 
+      name: 'Blockchain', 
+      slug: 'blockchain', 
+      description: 'Cryptocurrency, DeFi, and blockchain technology',
+      updated_at: new Date(),
+    },
+    { 
+      name: 'UI/UX Design', 
+      slug: 'ui-ux-design', 
+      description: 'User interface and user experience design',
+      updated_at: new Date(),
+    },
+    { 
+      name: 'Career & Learning', 
+      slug: 'career-learning', 
+      description: 'Tech careers, learning resources, and industry insights',
+      updated_at: new Date(),
+    },
   ];
 
   const createdCategories: any[] = [];
   for (const category of categories) {
-    const createdCategory = await prisma.articleCategory.upsert({
+    const createdCategory = await prisma.article_categories.upsert({
       where: { slug: category.slug },
       update: category,
       create: category,
@@ -490,41 +554,41 @@ async function main() {
   console.log('🏷️ Creating article tags...');
   
   const tags = [
-    { name: 'JavaScript', slug: 'javascript' },
-    { name: 'TypeScript', slug: 'typescript' },
-    { name: 'React', slug: 'react' },
-    { name: 'Node.js', slug: 'nodejs' },
-    { name: 'Python', slug: 'python' },
-    { name: 'Machine Learning', slug: 'machine-learning' },
-    { name: 'Docker', slug: 'docker' },
-    { name: 'Kubernetes', slug: 'kubernetes' },
-    { name: 'AWS', slug: 'aws' },
-    { name: 'Firebase', slug: 'firebase' },
-    { name: 'MongoDB', slug: 'mongodb' },
-    { name: 'PostgreSQL', slug: 'postgresql' },
-    { name: 'Vue.js', slug: 'vuejs' },
-    { name: 'Angular', slug: 'angular' },
-    { name: 'Flutter', slug: 'flutter' },
-    { name: 'Swift', slug: 'swift' },
-    { name: 'Kotlin', slug: 'kotlin' },
-    { name: 'Go', slug: 'go' },
-    { name: 'Rust', slug: 'rust' },
-    { name: 'Next.js', slug: 'nextjs' },
-    { name: 'GraphQL', slug: 'graphql' },
-    { name: 'REST API', slug: 'rest-api' },
-    { name: 'Microservices', slug: 'microservices' },
-    { name: 'AI', slug: 'ai' },
-    { name: 'Blockchain', slug: 'blockchain' },
-    { name: 'Security', slug: 'security' },
-    { name: 'Testing', slug: 'testing' },
-    { name: 'Performance', slug: 'performance' },
-    { name: 'Tutorial', slug: 'tutorial' },
-    { name: 'Best Practices', slug: 'best-practices' },
+    { name: 'JavaScript', slug: 'javascript', updated_at: new Date() },
+    { name: 'TypeScript', slug: 'typescript', updated_at: new Date() },
+    { name: 'React', slug: 'react', updated_at: new Date() },
+    { name: 'Node.js', slug: 'nodejs', updated_at: new Date() },
+    { name: 'Python', slug: 'python', updated_at: new Date() },
+    { name: 'Machine Learning', slug: 'machine-learning', updated_at: new Date() },
+    { name: 'Docker', slug: 'docker', updated_at: new Date() },
+    { name: 'Kubernetes', slug: 'kubernetes', updated_at: new Date() },
+    { name: 'AWS', slug: 'aws', updated_at: new Date() },
+    { name: 'Firebase', slug: 'firebase', updated_at: new Date() },
+    { name: 'MongoDB', slug: 'mongodb', updated_at: new Date() },
+    { name: 'PostgreSQL', slug: 'postgresql', updated_at: new Date() },
+    { name: 'Vue.js', slug: 'vuejs', updated_at: new Date() },
+    { name: 'Angular', slug: 'angular', updated_at: new Date() },
+    { name: 'Flutter', slug: 'flutter', updated_at: new Date() },
+    { name: 'Swift', slug: 'swift', updated_at: new Date() },
+    { name: 'Kotlin', slug: 'kotlin', updated_at: new Date() },
+    { name: 'Go', slug: 'go', updated_at: new Date() },
+    { name: 'Rust', slug: 'rust', updated_at: new Date() },
+    { name: 'Next.js', slug: 'nextjs', updated_at: new Date() },
+    { name: 'GraphQL', slug: 'graphql', updated_at: new Date() },
+    { name: 'REST API', slug: 'rest-api', updated_at: new Date() },
+    { name: 'Microservices', slug: 'microservices', updated_at: new Date() },
+    { name: 'AI', slug: 'ai', updated_at: new Date() },
+    { name: 'Blockchain', slug: 'blockchain', updated_at: new Date() },
+    { name: 'Security', slug: 'security', updated_at: new Date() },
+    { name: 'Testing', slug: 'testing', updated_at: new Date() },
+    { name: 'Performance', slug: 'performance', updated_at: new Date() },
+    { name: 'Tutorial', slug: 'tutorial', updated_at: new Date() },
+    { name: 'Best Practices', slug: 'best-practices', updated_at: new Date() },
   ];
 
   const createdTags: any[] = [];
   for (const tag of tags) {
-    const createdTag = await prisma.articleTag.upsert({
+    const createdTag = await prisma.article_tags.upsert({
       where: { slug: tag.slug },
       update: tag,
       create: tag,
@@ -541,68 +605,73 @@ async function main() {
     {
       email: 'ahmed.tech@example.com',
       password: '$2b$10$YourHashedPasswordHere', // This should be properly hashed
-      firstName: 'Ahmed',
-      lastName: 'Al-Rashid',
+      first_name: 'Ahmed',
+      last_name: 'Al-Rashid',
       username: 'ahmed_tech',
       bio: 'Full-stack developer passionate about React and Node.js',
       role: 'JOURNALIST' as const,
-      techCoin: 1500,
-      languageId: 13, // Arabic
-      countryId: 26, // Saudi Arabia
+      tech_coin: 1500,
+      language_id: 13, // Arabic
+      country_id: 26, // Saudi Arabia
+      updated_at: new Date(),
     },
     {
       email: 'sarah.dev@example.com',
       password: '$2b$10$YourHashedPasswordHere',
-      firstName: 'Sarah',
-      lastName: 'Johnson',
+      first_name: 'Sarah',
+      last_name: 'Johnson',
       username: 'sarah_codes',
       bio: 'Frontend specialist and UI/UX enthusiast',
       role: 'THINKER' as const,
-      techCoin: 2000,
-      languageId: 12, // English
-      countryId: 91, // United States
+      tech_coin: 2000,
+      language_id: 12, // English
+      country_id: 91, // United States
+      updated_at: new Date(),
     },
     {
       email: 'mohamed.ai@example.com',
       password: '$2b$10$YourHashedPasswordHere',
-      firstName: 'Mohamed',
-      lastName: 'Hassan',
+      first_name: 'Mohamed',
+      last_name: 'Hassan',
       username: 'mo_ai_expert',
       bio: 'AI researcher and machine learning engineer',
       role: 'JOURNALIST' as const,
-      techCoin: 3000,
-      languageId: 13, // Arabic
-      countryId: 68, // Egypt
+      tech_coin: 3000,
+      language_id: 13, // Arabic
+      country_id: 68, // Egypt
+      updated_at: new Date(),
     },
     {
       email: 'yuki.dev@example.com',
       password: '$2b$10$YourHashedPasswordHere',
-      firstName: 'Yuki',
-      lastName: 'Tanaka',
+      first_name: 'Yuki',
+      last_name: 'Tanaka',
       username: 'yuki_tech',
       bio: 'Mobile developer specializing in Flutter and React Native',
       role: 'MEMBER' as const,
-      techCoin: 800,
-      languageId: 27, // Japanese
-      countryId: 52, // Japan
+      tech_coin: 800,
+      language_id: 27, // Japanese
+      country_id: 52, // Japan
+      updated_at: new Date(),
     },
     {
       email: 'fatma.blockchain@example.com',
       password: '$2b$10$YourHashedPasswordHere',
-      firstName: 'Fatma',
-      lastName: 'Özkan',
+      first_name: 'Fatma',
+      last_name: 'Özkan',
       username: 'fatma_chain',
       bio: 'Blockchain developer and cryptocurrency enthusiast',
       role: 'THINKER' as const,
-      techCoin: 2500,
-      languageId: 14, // Turkish
-      countryId: 30, // Turkey
+      tech_coin: 2500,
+      language_id: 14, // Turkish
+      country_id: 30, // Turkey
+      updated_at: new Date(),
     },
   ];
 
   const createdUsers: any[] = [];
   for (const user of demoUsers) {
-    const createdUser = await prisma.user.upsert({
+    const createdUser = await prisma.users.upsert({
       where: { email: user.email },
       update: user,
       create: user,
@@ -1090,10 +1159,29 @@ DevOps practices ensure reliable, scalable, and secure software delivery.`,
 
   const createdArticles: any[] = [];
   for (const articleData of articlesData) {
-    const article = await prisma.article.upsert({
-      where: { slug: articleData.slug },
-      update: articleData,
-      create: articleData,
+    // Transform camelCase to snake_case for Prisma schema
+    const transformedData = {
+      title: articleData.title,
+      slug: articleData.slug,
+      content: articleData.content,
+      excerpt: articleData.excerpt,
+      category_id: articleData.categoryId,
+      author_id: articleData.authorId,
+      language_code: articleData.languageCode,
+      country_code: articleData.countryCode,
+      is_published: articleData.isPublished,
+      published_at: articleData.publishedAt,
+      featured: articleData.featured,
+      scheduled_for: articleData.scheduledFor,
+      is_ai: articleData.isAI,
+      ai_prompt: articleData.aiPrompt,
+      updated_at: new Date(),
+    };
+
+    const article = await prisma.articles.upsert({
+      where: { slug: transformedData.slug },
+      update: transformedData,
+      create: transformedData,
     });
     createdArticles.push(article);
   }
@@ -1117,10 +1205,10 @@ DevOps practices ensure reliable, scalable, and secure software delivery.`,
 
   for (const relation of articleTagRelations) {
     for (const tagId of relation.tagIds) {
-      await prisma.articleTagRelation.create({
+      await prisma.article_tag_relations.create({
         data: {
-          articleId: relation.articleId,
-          tagId: tagId,
+          article_id: relation.articleId,
+          tag_id: tagId,
         },
       });
     }
@@ -1131,19 +1219,21 @@ DevOps practices ensure reliable, scalable, and secure software delivery.`,
   // ===========================================
   console.log('⏰ Creating scheduled posts...');
 
-  await prisma.scheduledPost.createMany({
+  await prisma.scheduled_posts.createMany({
     data: [
       {
-        articleId: createdArticles[2].id, // ML Python article
-        userId: createdUsers[2].id, // Mohamed
-        publishAt: tomorrow,
+        article_id: createdArticles[2].id, // ML Python article
+        user_id: createdUsers[2].id, // Mohamed
+        publish_at: tomorrow,
         status: 'SCHEDULED',
+        updated_at: new Date(),
       },
       {
-        articleId: createdArticles[3].id, // Flutter article
-        userId: createdUsers[3].id, // Yuki
-        publishAt: nextWeek,
+        article_id: createdArticles[3].id, // Flutter article
+        user_id: createdUsers[3].id, // Yuki
+        publish_at: nextWeek,
         status: 'SCHEDULED',
+        updated_at: new Date(),
       },
     ],
   });
@@ -1155,21 +1245,21 @@ DevOps practices ensure reliable, scalable, and secure software delivery.`,
 
   const boostEndDate = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days from now
 
-  await prisma.articleBoost.createMany({
+  await prisma.article_boosts.createMany({
     data: [
       {
-        articleId: createdArticles[0].id, // React Hooks
-        userId: createdUsers[0].id, // Ahmed
-        coinSpent: 500,
-        startDate: yesterday,
-        endDate: boostEndDate,
+        article_id: createdArticles[0].id, // React Hooks
+        user_id: createdUsers[0].id, // Ahmed
+        coin_spent: 500,
+        start_date: yesterday,
+        end_date: boostEndDate,
       },
       {
-        articleId: createdArticles[5].id, // DevOps
-        userId: createdUsers[1].id, // Sarah
-        coinSpent: 300,
-        startDate: now,
-        endDate: boostEndDate,
+        article_id: createdArticles[5].id, // DevOps
+        user_id: createdUsers[1].id, // Sarah
+        coin_spent: 300,
+        start_date: now,
+        end_date: boostEndDate,
       },
     ],
   });
@@ -1179,34 +1269,34 @@ DevOps practices ensure reliable, scalable, and secure software delivery.`,
   // ===========================================
   console.log('🤖 Creating AI enhancements...');
 
-  await prisma.articleAIEnhancement.createMany({
+  await prisma.article_ai_enhancements.createMany({
     data: [
       {
-        articleId: createdArticles[4].id, // Blockchain article
-        userId: createdUsers[4].id, // Fatma
-        enhancementType: 'TITLE_OPTIMIZATION',
-        originalValue: 'Basic Blockchain Development',
-        enhancedValue: 'Blockchain Development Fundamentals',
-        coinSpent: 100,
-        isApplied: true,
+        article_id: createdArticles[4].id, // Blockchain article
+        user_id: createdUsers[4].id, // Fatma
+        enhancement_type: 'TITLE_OPTIMIZATION',
+        original_value: 'Basic Blockchain Development',
+        enhanced_value: 'Blockchain Development Fundamentals',
+        coin_spent: 100,
+        is_applied: true,
       },
       {
-        articleId: createdArticles[4].id, // Blockchain article
-        userId: createdUsers[4].id, // Fatma
-        enhancementType: 'SEO_TAGS',
-        originalValue: 'blockchain, development',
-        enhancedValue: 'blockchain development, smart contracts, web3, dapps, ethereum, solidity',
-        coinSpent: 150,
-        isApplied: true,
+        article_id: createdArticles[4].id, // Blockchain article
+        user_id: createdUsers[4].id, // Fatma
+        enhancement_type: 'SEO_TAGS',
+        original_value: 'blockchain, development',
+        enhanced_value: 'blockchain development, smart contracts, web3, dapps, ethereum, solidity',
+        coin_spent: 150,
+        is_applied: true,
       },
       {
-        articleId: createdArticles[2].id, // ML Python article
-        userId: createdUsers[2].id, // Mohamed
-        enhancementType: 'SUMMARY_GENERATION',
-        originalValue: '',
-        enhancedValue: 'A comprehensive guide to machine learning with Python, covering fundamentals, libraries, and practical examples.',
-        coinSpent: 200,
-        isApplied: false,
+        article_id: createdArticles[2].id, // ML Python article
+        user_id: createdUsers[2].id, // Mohamed
+        enhancement_type: 'SUMMARY_GENERATION',
+        original_value: '',
+        enhanced_value: 'A comprehensive guide to machine learning with Python, covering fundamentals, libraries, and practical examples.',
+        coin_spent: 200,
+        is_applied: false,
       },
     ],
   });

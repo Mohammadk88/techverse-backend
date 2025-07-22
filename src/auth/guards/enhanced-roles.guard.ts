@@ -12,7 +12,7 @@ export class EnhancedRolesGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Get required global roles from decorator
     const requiredGlobalRoles = this.reflector.getAllAndOverride<string[]>(
-      'global_roles',
+      'user_global_roles',
       [context.getHandler(), context.getClass()],
     );
 
@@ -47,11 +47,11 @@ export class EnhancedRolesGuard implements CanActivate {
 
     // Check café roles if required
     if (requiredCafeRoles && requiredCafeRoles.length > 0) {
-      const cafeId = this.extractCafeId(request);
-      if (cafeId) {
+      const cafe_id = this.extractCafeId(request);
+      if (cafe_id) {
         const hasCafeRole = await this.checkUserCafeRoles(
           user.id,
-          cafeId,
+          cafe_id,
           requiredCafeRoles,
         );
         if (hasCafeRole) {
@@ -64,42 +64,42 @@ export class EnhancedRolesGuard implements CanActivate {
   }
 
   private async checkUserGlobalRoles(
-    userId: number,
+    user_id: number,
     requiredRoles: string[],
   ): Promise<boolean> {
-    const userRoles = await this.prisma.userGlobalRole.findMany({
-      where: { userId },
-      include: { role: true },
+    const userRoles = await this.prisma.user_global_roles.findMany({
+      where: { user_id },
+      include: { global_roles: true },
     });
 
-    const userRoleNames = userRoles.map((ur) => ur.role.name);
+    const userRoleNames = userRoles.map((ur) => ur.global_roles.name);
     return requiredRoles.some((role) => userRoleNames.includes(role));
   }
 
   private async checkUserCafeRoles(
-    userId: number,
-    cafeId: number,
+    user_id: number,
+    cafe_id: number,
     requiredRoles: string[],
   ): Promise<boolean> {
-    const userCafeRoles = await this.prisma.userCafeRole.findMany({
-      where: { userId, cafeId },
-      include: { role: true },
+    const userCafeRoles = await this.prisma.user_cafe_roles.findMany({
+      where: { user_id, cafe_id },
+      include: { cafe_roles: true },
     });
 
-    const userRoleNames = userCafeRoles.map((ucr) => ucr.role.name);
+    const userRoleNames = userCafeRoles.map((ucr) => ucr.cafe_roles.name);
     return requiredRoles.some((role) => userRoleNames.includes(role));
   }
 
   private extractCafeId(request: any): number | null {
     // Try to get café ID from route params
-    const cafeId = request.params?.cafeId || request.params?.id;
-    if (cafeId && !isNaN(Number(cafeId))) {
-      return Number(cafeId);
+    const cafe_id = request.params?.cafe_id || request.params?.id;
+    if (cafe_id && !isNaN(Number(cafe_id))) {
+      return Number(cafe_id);
     }
 
     // Try to get café ID from body for POST requests
-    if (request.body?.cafeId && !isNaN(Number(request.body.cafeId))) {
-      return Number(request.body.cafeId);
+    if (request.body?.cafe_id && !isNaN(Number(request.body.cafe_id))) {
+      return Number(request.body.cafe_id);
     }
 
     return null;

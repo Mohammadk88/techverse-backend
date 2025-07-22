@@ -8,6 +8,7 @@ import { PrismaService } from '../database/prisma.service';
 import { UpdateUserDto, UpdateUserRoleDto } from './dto/user.dto';
 import { PaginationDto, PaginatedResult } from '../common/dto/pagination.dto';
 import { UserRole } from '../common/decorators/roles.decorator';
+import { user_roles } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -18,30 +19,29 @@ export class UsersService {
     const skip = (page - 1) * limit;
 
     const [users, total] = await Promise.all([
-      this.prisma.user.findMany({
+      this.prisma.users.findMany({
         skip,
         take: limit,
         select: {
           id: true,
           email: true,
-          firstName: true,
-          lastName: true,
+          first_name: true,
+          last_name: true,
           username: true,
           bio: true,
           avatar: true,
           role: true,
           xp: true,
-          countryId: true,
-          languageId: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true,
+          country_id: true,
+          language_id: true,
+          is_active: true,
+          created_at: true,
+          updated_at: true,
         },
-        orderBy: {
-          createdAt: 'desc',
+        orderBy: { created_at: 'desc',
         },
       }),
-      this.prisma.user.count(),
+      this.prisma.users.count(),
     ]);
 
     return {
@@ -56,42 +56,42 @@ export class UsersService {
   }
 
   async findOne(id: number) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.users.findUnique({
       where: { id },
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
+        first_name: true,
+        last_name: true,
         username: true,
         bio: true,
         avatar: true,
         role: true,
         xp: true,
-        countryId: true,
-        cityId: true,
-        languageId: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        country: {
+        country_id: true,
+        city_id: true,
+        language_id: true,
+        is_active: true,
+        created_at: true,
+        updated_at: true,
+        countries: {
           select: {
             id: true,
             name: true,
             code: true,
           },
         },
-        city: {
+        cities: {
           select: {
             id: true,
             name: true,
           },
         },
-        language: {
+        languages: {
           select: {
             id: true,
             name: true,
-            nativeName: true,
+            native_name: true,
             code: true,
             direction: true,
           },
@@ -105,11 +105,11 @@ export class UsersService {
 
     // Get follow counts
     const [followersCount, followingCount] = await Promise.all([
-      this.prisma.follow.count({
-        where: { followingId: id },
+      this.prisma.follows.count({
+        where: { following_id: id },
       }),
-      this.prisma.follow.count({
-        where: { followerId: id },
+      this.prisma.follows.count({
+        where: { follower_id: id },
       }),
     ]);
 
@@ -127,7 +127,7 @@ export class UsersService {
   async updateProfile(id: number, updateUserDto: UpdateUserDto) {
     // Check if username is taken by another user
     if (updateUserDto.username) {
-      const existingUser = await this.prisma.user.findUnique({
+      const existingUser = await this.prisma.users.findUnique({
         where: { username: updateUserDto.username },
       });
 
@@ -136,24 +136,24 @@ export class UsersService {
       }
     }
 
-    const user = await this.prisma.user.update({
+    const user = await this.prisma.users.update({
       where: { id },
       data: updateUserDto,
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
+        first_name: true,
+        last_name: true,
         username: true,
         bio: true,
         avatar: true,
         role: true,
         xp: true,
-        countryId: true,
-        languageId: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+        country_id: true,
+        language_id: true,
+        is_active: true,
+        created_at: true,
+        updated_at: true,
       },
     });
 
@@ -166,18 +166,18 @@ export class UsersService {
     currentUser: any,
   ) {
     // Only BARISTA (admin) can update roles
-    if (currentUser.role !== UserRole.BARISTA) {
-      throw new ForbiddenException('Only administrators can update user roles');
+    if (currentUser.role !== user_roles.BARISTA) {
+      throw new ForbiddenException('Only baristas can update user roles');
     }
 
-    const user = await this.prisma.user.update({
+    const user = await this.prisma.users.update({
       where: { id },
       data: { role: updateUserRoleDto.role },
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
+        first_name: true,
+        last_name: true,
         username: true,
         role: true,
         xp: true,
@@ -189,17 +189,17 @@ export class UsersService {
 
   async deactivateUser(id: number, currentUser: any) {
     // Only BARISTA (admin) can deactivate users, or users can deactivate themselves
-    if (currentUser.role !== UserRole.BARISTA && currentUser.id !== id) {
+    if (currentUser.role !== user_roles.BARISTA && currentUser.id !== id) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    const user = await this.prisma.user.update({
+    const user = await this.prisma.users.update({
       where: { id },
-      data: { isActive: false },
+      data: { is_active: false },
       select: {
         id: true,
         email: true,
-        isActive: true,
+        is_active: true,
       },
     });
 
@@ -207,12 +207,12 @@ export class UsersService {
   }
 
   async getLeaderboard(limit: number = 10) {
-    const users = await this.prisma.user.findMany({
-      where: { isActive: true },
+    const users = await this.prisma.users.findMany({
+      where: { is_active: true },
       select: {
         id: true,
-        firstName: true,
-        lastName: true,
+        first_name: true,
+        last_name: true,
         username: true,
         avatar: true,
         xp: true,

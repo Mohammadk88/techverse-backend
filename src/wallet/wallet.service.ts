@@ -1,25 +1,26 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { BuyTechCoinDto, SpendTechCoinDto, EarnTechCoinDto } from './dto';
-import { TransactionType, Wallet, WalletTransaction } from '@prisma/client';
+import { transaction_types, wallets, wallet_transactions } from '@prisma/client';
 
 @Injectable()
 export class WalletService {
   constructor(private prisma: PrismaService) {}
 
   // Get or create user wallet
-  async getOrCreateWallet(userId: number): Promise<Wallet> {
-    let wallet = await this.prisma.wallet.findUnique({
-      where: { userId: userId },
+  async getOrCreateWallet(user_id: number): Promise<wallets> {
+    let wallet = await this.prisma.wallets.findUnique({
+      where: { user_id: user_id },
     });
 
     if (!wallet) {
-      wallet = await this.prisma.wallet.create({
+      wallet = await this.prisma.wallets.create({
         data: {
-          userId,
-          techCoin: 100, // Starting balance
-          xp: 0,
-        },
+        user_id,
+        tech_coin: 0,
+        xp: 0,
+        updated_at: new Date(),
+      },
       });
     }
 
@@ -27,12 +28,12 @@ export class WalletService {
   }
 
   // Get wallet with transaction history
-  async getWallet(userId: number) {
-    const wallet = await this.getOrCreateWallet(userId);
+  async getWallet(user_id: number) {
+    const wallet = await this.getOrCreateWallet(user_id);
     
-    const transactions = await this.prisma.walletTransaction.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
+    const transactions = await this.prisma.wallet_transactions.findMany({
+      where: { user_id },
+      orderBy: { created_at: 'desc' },
       take: 20, // Latest 20 transactions
     });
 
@@ -43,7 +44,7 @@ export class WalletService {
   }
 
   // Buy TechCoin (Mock Stripe payment)
-  async buyTechCoin(userId: number, buyDto: BuyTechCoinDto) {
+  async buyTechCoin(user_id: number, buyDto: BuyTechCoinDto) {
     // Mock Stripe payment process
     const paymentSuccess = await this.mockStripePayment(buyDto.amount);
     
@@ -53,18 +54,18 @@ export class WalletService {
 
     // Update wallet and create transaction
     const [updatedWallet, transaction] = await this.prisma.$transaction([
-      this.prisma.wallet.update({
-        where: { userId },
+      this.prisma.wallets.update({
+        where: { user_id },
         data: {
-          techCoin: {
+          tech_coin: {
             increment: buyDto.amount,
           },
         },
       }),
-      this.prisma.walletTransaction.create({
+      this.prisma.wallet_transactions.create({
         data: {
-          userId,
-          type: TransactionType.BUY,
+          user_id,
+          type: transaction_types.BUY,
           amount: buyDto.amount,
           description: `Purchased ${buyDto.amount} TechCoin`,
         },
@@ -78,27 +79,27 @@ export class WalletService {
   }
 
   // Spend TechCoin
-  async spendTechCoin(userId: number, spendDto: SpendTechCoinDto) {
-    const wallet = await this.getOrCreateWallet(userId);
+  async spendTechCoin(user_id: number, spendDto: SpendTechCoinDto) {
+    const wallet = await this.getOrCreateWallet(user_id);
 
-    if (wallet.techCoin < spendDto.amount) {
+    if (wallet.tech_coin < spendDto.amount) {
       throw new BadRequestException('Insufficient TechCoin balance');
     }
 
     // Update wallet and create transaction
     const [updatedWallet, transaction] = await this.prisma.$transaction([
-      this.prisma.wallet.update({
-        where: { userId },
+      this.prisma.wallets.update({
+        where: { user_id },
         data: {
-          techCoin: {
+          tech_coin: {
             decrement: spendDto.amount,
           },
         },
       }),
-      this.prisma.walletTransaction.create({
+      this.prisma.wallet_transactions.create({
         data: {
-          userId,
-          type: TransactionType.SPEND,
+          user_id,
+          type: transaction_types.SPEND,
           amount: -spendDto.amount, // Negative for spending
           description: spendDto.description,
         },
@@ -112,21 +113,21 @@ export class WalletService {
   }
 
   // Earn TechCoin (for completing tasks, winning challenges, etc.)
-  async earnTechCoin(userId: number, earnDto: EarnTechCoinDto) {
+  async earnTechCoin(user_id: number, earnDto: EarnTechCoinDto) {
     // Update wallet and create transaction
     const [updatedWallet, transaction] = await this.prisma.$transaction([
-      this.prisma.wallet.update({
-        where: { userId },
+      this.prisma.wallets.update({
+        where: { user_id },
         data: {
-          techCoin: {
+          tech_coin: {
             increment: earnDto.amount,
           },
         },
       }),
-      this.prisma.walletTransaction.create({
+      this.prisma.wallet_transactions.create({
         data: {
-          userId,
-          type: TransactionType.EARN,
+          user_id,
+          type: transaction_types.EARN,
           amount: earnDto.amount,
           description: earnDto.description,
         },
@@ -140,9 +141,9 @@ export class WalletService {
   }
 
   // Add XP to wallet
-  async addXP(userId: number, xpAmount: number, description: string) {
-    const updatedWallet = await this.prisma.wallet.update({
-      where: { userId },
+  async addXP(user_id: number, xpAmount: number, description: string) {
+    const updatedWallet = await this.prisma.wallets.update({
+      where: { user_id },
       data: {
         xp: {
           increment: xpAmount,
@@ -151,10 +152,10 @@ export class WalletService {
     });
 
     // Log XP gain as a transaction (amount = 0, description shows XP)
-    await this.prisma.walletTransaction.create({
+    await this.prisma.wallet_transactions.create({
       data: {
-        userId,
-        type: TransactionType.EARN,
+        user_id,
+        type: transaction_types.EARN,
         amount: 0,
         description: `${description} (+${xpAmount} XP)`,
       },
@@ -164,24 +165,24 @@ export class WalletService {
   }
 
   // Check if user has enough TechCoin
-  async hasEnoughTechCoin(userId: number, amount: number): Promise<boolean> {
-    const wallet = await this.getOrCreateWallet(userId);
-    return wallet.techCoin >= amount;
+  async hasEnoughTechCoin(user_id: number, amount: number): Promise<boolean> {
+    const wallet = await this.getOrCreateWallet(user_id);
+    return wallet.tech_coin >= amount;
   }
 
   // Get transaction history
-  async getTransactionHistory(userId: number, page: number = 1, limit: number = 20) {
+  async getTransactionHistory(user_id: number, page: number = 1, limit: number = 20) {
     const skip = (page - 1) * limit;
     
     const [transactions, total] = await Promise.all([
-      this.prisma.walletTransaction.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
+      this.prisma.wallet_transactions.findMany({
+        where: { user_id },
+        orderBy: { created_at: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.walletTransaction.count({
-        where: { userId },
+      this.prisma.wallet_transactions.count({
+        where: { user_id },
       }),
     ]);
 

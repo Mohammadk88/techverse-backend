@@ -37,18 +37,18 @@ export class WalletController {
     schema: {
       example: {
         id: 1,
-        userId: 123,
-        techCoin: 250,
+        user_id: 123,
+        tech_coin: 250,
         xp: 850,
-        createdAt: '2025-07-16T00:00:00Z',
-        updatedAt: '2025-07-16T12:00:00Z',
+        created_at: '2025-07-16T00:00:00Z',
+        updated_at: '2025-07-16T12:00:00Z',
         recentTransactions: [
           {
             id: 5,
             type: 'EARN',
             amount: 25,
             description: 'Task completion reward',
-            createdAt: '2025-07-16T10:30:00Z'
+            created_at: '2025-07-16T10:30:00Z'
           }
         ]
       }
@@ -76,10 +76,10 @@ export class WalletController {
           amount: 100,
           description: 'Purchased 100 TechCoin for $10.00',
           stripePaymentId: 'pi_mock_12345',
-          createdAt: '2025-07-16T12:30:00Z'
+          created_at: '2025-07-16T12:30:00Z'
         },
         wallet: {
-          techCoin: 350,
+          tech_coin: 350,
           xp: 850
         }
       }
@@ -107,7 +107,7 @@ export class WalletController {
           type: 'SPEND',
           amount: -50,
           description: 'Joined challenge: Code Master',
-          createdAt: '2025-07-16T12:45:00Z'
+          created_at: '2025-07-16T12:45:00Z'
         },
         remainingBalance: 300
       }
@@ -135,7 +135,7 @@ export class WalletController {
           type: 'EARN',
           amount: 75,
           description: 'Won challenge: Code Master',
-          createdAt: '2025-07-16T13:00:00Z'
+          created_at: '2025-07-16T13:00:00Z'
         },
         newBalance: 375,
         xpGained: 25
@@ -166,14 +166,14 @@ export class WalletController {
             type: 'EARN',
             amount: 75,
             description: 'Won challenge: Code Master',
-            createdAt: '2025-07-16T13:00:00Z',
+            created_at: '2025-07-16T13:00:00Z',
           },
           {
             id: 11,
             type: 'SPEND',
             amount: -50,
             description: 'Joined challenge: Code Master',
-            createdAt: '2025-07-16T12:45:00Z',
+            created_at: '2025-07-16T12:45:00Z',
           },
         ],
         pagination: {
@@ -240,7 +240,7 @@ export class WalletController {
         req.user.id,
       );
       return {
-        balance: wallet.techCoin,
+        balance: wallet.tech_coin,
         xp: wallet.xp,
         hasEnough,
         requiredAmount: amount,
@@ -248,6 +248,6 @@ export class WalletController {
     }
 
     const wallet = await this.walletService.getOrCreateWallet(req.user.id);
-    return { balance: wallet.techCoin, xp: wallet.xp };
+    return { balance: wallet.tech_coin, xp: wallet.xp };
   }
 }

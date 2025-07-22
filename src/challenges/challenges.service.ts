@@ -16,10 +16,10 @@ export class ChallengesService {
   ) {}
 
   // Create a new challenge
-  async createChallenge(userId: number, createDto: CreateChallengeDto) {
+  async createChallenge(user_id: number, createDto: CreateChallengeDto) {
     // Check if user has enough TechCoin to create challenge
     const hasEnough = await this.walletService.hasEnoughTechCoin(
-      userId,
+      user_id,
       createDto.reward,
     );
 
@@ -30,40 +30,41 @@ export class ChallengesService {
     }
 
     // Deduct the reward amount from creator's wallet
-    await this.walletService.spendTechCoin(userId, {
+    await this.walletService.spendTechCoin(user_id, {
       amount: createDto.reward,
-      description: `Created challenge: ${createDto.title}`,
+      description: `Created challenges: ${createDto.title}`,
     });
 
     // Create the challenge
-    const challenge = await this.prisma.challenge.create({
+    const challenge = await this.prisma.challenges.create({
       data: {
         title: createDto.title,
         description: createDto.description,
         reward: createDto.reward,
         entryFee: createDto.entryFee,
         type: createDto.type,
-        startDate: new Date(createDto.startDate),
-        endDate: new Date(createDto.endDate),
-        createdById: userId,
+        start_date: new Date(createDto.start_date),
+        end_date: new Date(createDto.end_date),
+        created_by_id: user_id,
+        updated_at: new Date(),
       },
       include: {
-        createdBy: {
+        users: {
           select: {
             id: true,
             username: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
           },
         },
-        participants: {
+        challenge_participants: {
           include: {
-            user: {
+            users: {
               select: {
                 id: true,
                 username: true,
-                firstName: true,
-                lastName: true,
+                first_name: true,
+                last_name: true,
               },
             },
           },
@@ -79,39 +80,39 @@ export class ChallengesService {
     const skip = (page - 1) * limit;
 
     const [challenges, total] = await Promise.all([
-      this.prisma.challenge.findMany({
+      this.prisma.challenges.findMany({
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         include: {
-          createdBy: {
+          users: {
             select: {
               id: true,
               username: true,
-              firstName: true,
-              lastName: true,
+              first_name: true,
+              last_name: true,
             },
           },
-          participants: {
+          challenge_participants: {
             include: {
-              user: {
+              users: {
                 select: {
                   id: true,
                   username: true,
-                  firstName: true,
-                  lastName: true,
+                  first_name: true,
+                  last_name: true,
                 },
               },
             },
           },
           _count: {
             select: {
-              participants: true,
+              challenge_participants: true,
             },
           },
         },
       }),
-      this.prisma.challenge.count(),
+      this.prisma.challenges.count(),
     ]);
 
     return {
@@ -127,29 +128,29 @@ export class ChallengesService {
 
   // Get single challenge by ID
   async getChallengeById(id: number) {
-    const challenge = await this.prisma.challenge.findUnique({
+    const challenge = await this.prisma.challenges.findUnique({
       where: { id },
       include: {
-        createdBy: {
+        users: {
           select: {
             id: true,
             username: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
           },
         },
-        participants: {
+        challenge_participants: {
           include: {
-            user: {
+            users: {
               select: {
                 id: true,
                 username: true,
-                firstName: true,
-                lastName: true,
+                first_name: true,
+                last_name: true,
               },
             },
           },
-          orderBy: { voteCount: 'desc' },
+          orderBy: { vote_count: 'desc' },
         },
       },
     });
@@ -163,38 +164,38 @@ export class ChallengesService {
 
   // Join a challenge
   async joinChallenge(
-    userId: number,
-    challengeId: number,
+    user_id: number,
+    challenge_id: number,
     joinDto: JoinChallengeDto,
   ) {
-    const challenge = await this.prisma.challenge.findUnique({
-      where: { id: challengeId },
+    const challenge = await this.prisma.challenges.findUnique({
+      where: { id: challenge_id },
     });
 
     if (!challenge) {
       throw new NotFoundException('Challenge not found');
     }
 
-    if (challenge.createdById === userId) {
+    if (challenge.created_by_id === user_id) {
       throw new BadRequestException('You cannot join your own challenge');
     }
 
     // Check if challenge is still open
     const now = new Date();
-    if (now < challenge.startDate) {
+    if (now < challenge.start_date) {
       throw new BadRequestException('Challenge has not started yet');
     }
 
-    if (now > challenge.endDate) {
+    if (now > challenge.end_date) {
       throw new BadRequestException('Challenge has ended');
     }
 
     // Check if user already joined
-    const existingParticipant = await this.prisma.challengeParticipant.findUnique({
+    const existingParticipant = await this.prisma.challenge_participants.findUnique({
       where: {
-        challengeId_userId: {
-          challengeId,
-          userId,
+        challenge_id_user_id: {
+          challenge_id: challenge_id,
+          user_id,
         },
       },
     });
@@ -205,7 +206,7 @@ export class ChallengesService {
 
     // Check if user has enough TechCoin for entry fee
     const hasEnough = await this.walletService.hasEnoughTechCoin(
-      userId,
+      user_id,
       challenge.entryFee,
     );
 
@@ -216,28 +217,28 @@ export class ChallengesService {
     }
 
     // Deduct entry fee
-    await this.walletService.spendTechCoin(userId, {
+    await this.walletService.spendTechCoin(user_id, {
       amount: challenge.entryFee,
-      description: `Joined challenge: ${challenge.title}`,
+      description: `Joined challenges: ${challenge.title}`,
     });
 
     // Join the challenge
-    const participant = await this.prisma.challengeParticipant.create({
+    const participant = await this.prisma.challenge_participants.create({
       data: {
-        challengeId,
-        userId,
-        submissionUrl: joinDto.portfolioUrl,
+        challenge_id: challenge_id,
+        user_id,
+        submission_url: joinDto.portfolioUrl,
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             username: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
           },
         },
-        challenge: {
+        challenges: {
           select: {
             id: true,
             title: true,
@@ -253,19 +254,19 @@ export class ChallengesService {
 
   // Submit solution to challenge
   async submitSolution(
-    userId: number,
-    challengeId: number,
+    user_id: number,
+    challenge_id: number,
     submitDto: SubmitChallengeDto,
   ) {
-    const participant = await this.prisma.challengeParticipant.findUnique({
+    const participant = await this.prisma.challenge_participants.findUnique({
       where: {
-        challengeId_userId: {
-          challengeId,
-          userId,
+        challenge_id_user_id: {
+          challenge_id: challenge_id,
+          user_id,
         },
       },
       include: {
-        challenge: true,
+        challenges: true,
       },
     });
 
@@ -277,32 +278,32 @@ export class ChallengesService {
 
     // Check if challenge is still active
     const now = new Date();
-    if (now > participant.challenge.endDate) {
+    if (now > participant.challenges.end_date) {
       throw new BadRequestException('Challenge submission period has ended');
     }
 
     // Update submission
-    const updatedParticipant = await this.prisma.challengeParticipant.update({
+    const updatedParticipant = await this.prisma.challenge_participants.update({
       where: {
-        challengeId_userId: {
-          challengeId,
-          userId,
+        challenge_id_user_id: {
+          challenge_id: challenge_id,
+          user_id,
         },
       },
       data: {
-        submissionUrl: submitDto.submissionUrl,
-        submittedAt: new Date(),
+        submission_url: submitDto.submission_url,
+        submitted_at: new Date(),
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             username: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
           },
         },
-        challenge: {
+        challenges: {
           select: {
             id: true,
             title: true,
@@ -317,11 +318,11 @@ export class ChallengesService {
   // Vote for a participant (for VOTE type challenges)
   async voteForParticipant(
     voterId: number,
-    challengeId: number,
+    challenge_id: number,
     participantUserId: number,
   ) {
-    const challenge = await this.prisma.challenge.findUnique({
-      where: { id: challengeId },
+    const challenge = await this.prisma.challenges.findUnique({
+      where: { id: challenge_id },
     });
 
     if (!challenge) {
@@ -330,7 +331,7 @@ export class ChallengesService {
 
     // Check if challenge is ended
     const now = new Date();
-    if (now <= challenge.endDate) {
+    if (now <= challenge.end_date) {
       throw new BadRequestException(
         'Cannot vote until challenge period has ended',
       );
@@ -342,11 +343,11 @@ export class ChallengesService {
     }
 
     // Check if voter is a participant (participants can vote for others)
-    const voterParticipant = await this.prisma.challengeParticipant.findUnique({
+    const voterParticipant = await this.prisma.challenge_participants.findUnique({
       where: {
-        challengeId_userId: {
-          challengeId,
-          userId: voterId,
+        challenge_id_user_id: {
+          challenge_id: challenge_id,
+          user_id: voterId,
         },
       },
     });
@@ -363,11 +364,11 @@ export class ChallengesService {
     }
 
     // Check if participant exists
-    const participant = await this.prisma.challengeParticipant.findUnique({
+    const participant = await this.prisma.challenge_participants.findUnique({
       where: {
-        challengeId_userId: {
-          challengeId,
-          userId: participantUserId,
+        challenge_id_user_id: {
+          challenge_id: challenge_id,
+          user_id: participantUserId,
         },
       },
     });
@@ -377,15 +378,15 @@ export class ChallengesService {
     }
 
     // Update vote count
-    const updatedParticipant = await this.prisma.challengeParticipant.update({
+    const updatedParticipant = await this.prisma.challenge_participants.update({
       where: {
-        challengeId_userId: {
-          challengeId,
-          userId: participantUserId,
+        challenge_id_user_id: {
+          challenge_id: challenge_id,
+          user_id: participantUserId,
         },
       },
       data: {
-        voteCount: {
+        vote_count: {
           increment: 1,
         },
       },
@@ -395,19 +396,19 @@ export class ChallengesService {
   }
 
   // Close challenge and determine winner
-  async closeChallenge(userId: number, challengeId: number) {
-    const challenge = await this.prisma.challenge.findUnique({
-      where: { id: challengeId },
+  async closeChallenge(user_id: number, challenge_id: number) {
+    const challenge = await this.prisma.challenges.findUnique({
+      where: { id: challenge_id },
       include: {
-        participants: {
-          orderBy: { voteCount: 'desc' },
+        challenge_participants: {
+          orderBy: { vote_count: 'desc' },
           include: {
-            user: {
+            users: {
               select: {
                 id: true,
                 username: true,
-                firstName: true,
-                lastName: true,
+                first_name: true,
+                last_name: true,
               },
             },
           },
@@ -420,13 +421,13 @@ export class ChallengesService {
     }
 
     // Only creator can close the challenge
-    if (challenge.createdById !== userId) {
+    if (challenge.created_by_id !== user_id) {
       throw new ForbiddenException('Only challenge creator can close it');
     }
 
     // Check if challenge has ended
     const now = new Date();
-    if (now <= challenge.endDate) {
+    if (now <= challenge.end_date) {
       throw new BadRequestException('Challenge period has not ended yet');
     }
 
@@ -436,23 +437,23 @@ export class ChallengesService {
 
     // Determine winner (highest vote count)
     let winner: any = null;
-    if (challenge.participants.length > 0) {
-      const topParticipant = challenge.participants[0];
+    if (challenge.challenge_participants.length > 0) {
+      const topParticipant = challenge.challenge_participants[0];
       winner = topParticipant;
 
       // Award the winner
       if (topParticipant) {
-        await this.walletService.earnTechCoin(topParticipant.userId, {
+        await this.walletService.earnTechCoin(topParticipant.user_id, {
           amount: challenge.reward,
-          description: `Won challenge: ${challenge.title}`,
+          description: `Won challenges: ${challenge.title}`,
         });
 
         // Update winner status
-        await this.prisma.challengeParticipant.update({
+        await this.prisma.challenge_participants.update({
           where: {
-            challengeId_userId: {
-              challengeId,
-              userId: topParticipant.userId,
+            challenge_id_user_id: {
+              challenge_id: challenge_id,
+              user_id: topParticipant.user_id,
             },
           },
           data: {
@@ -461,12 +462,12 @@ export class ChallengesService {
         });
 
         // Update losers
-        for (const participant of challenge.participants.slice(1)) {
-          await this.prisma.challengeParticipant.update({
+        for (const participant of challenge.challenge_participants.slice(1)) {
+          await this.prisma.challenge_participants.update({
             where: {
-              challengeId_userId: {
-                challengeId,
-                userId: participant.userId,
+              challenge_id_user_id: {
+                challenge_id: challenge_id,
+                user_id: participant.user_id,
               },
             },
             data: {
@@ -478,94 +479,94 @@ export class ChallengesService {
     }
 
     // Close the challenge
-    const closedChallenge = await this.prisma.challenge.update({
-      where: { id: challengeId },
+    const closedChallenge = await this.prisma.challenges.update({
+      where: { id: challenge_id },
       data: {
         status: 'CLOSED',
       },
       include: {
-        participants: {
+        challenge_participants: {
           include: {
-            user: {
+            users: {
               select: {
                 id: true,
                 username: true,
-                firstName: true,
-                lastName: true,
+                first_name: true,
+                last_name: true,
               },
             },
           },
-          orderBy: { voteCount: 'desc' },
+          orderBy: { vote_count: 'desc' },
         },
       },
     });
 
     return {
-      challenge: closedChallenge,
+      challenges: closedChallenge,
       winner,
     };
   }
 
   // Get user's challenges (created by user)
-  async getUserCreatedChallenges(userId: number) {
-    return this.prisma.challenge.findMany({
-      where: { createdById: userId },
+  async getUserCreatedChallenges(user_id: number) {
+    return this.prisma.challenges.findMany({
+      where: { created_by_id: user_id },
       include: {
-        participants: {
+        challenge_participants: {
           include: {
-            user: {
+            users: {
               select: {
                 id: true,
                 username: true,
-                firstName: true,
-                lastName: true,
+                first_name: true,
+                last_name: true,
               },
             },
           },
         },
         _count: {
           select: {
-            participants: true,
+            challenge_participants: true,
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
     });
   }
 
   // Get user's participated challenges
-  async getUserParticipatedChallenges(userId: number) {
-    const participants = await this.prisma.challengeParticipant.findMany({
-      where: { userId },
+  async getUserParticipatedChallenges(user_id: number) {
+    const participants = await this.prisma.challenge_participants.findMany({
+      where: { user_id },
       include: {
-        challenge: {
+        challenges: {
           include: {
-            createdBy: {
+            users: {
               select: {
                 id: true,
                 username: true,
-                firstName: true,
-                lastName: true,
+                first_name: true,
+                last_name: true,
               },
             },
             _count: {
               select: {
-                participants: true,
+                challenge_participants: true,
               },
             },
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
     });
 
     return participants.map((p) => ({
-      ...p.challenge,
+      ...p.challenges,
       myParticipation: {
-        submissionUrl: p.submissionUrl,
-        voteCount: p.voteCount,
+        submission_url: p.submission_url,
+        vote_count: p.vote_count,
         result: p.result,
-        submittedAt: p.submittedAt,
+        submitted_at: p.submitted_at,
       },
     }));
   }

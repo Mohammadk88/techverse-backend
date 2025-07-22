@@ -45,7 +45,7 @@ export class AssignGlobalRoleDto {
   })
   @Type(() => Number)
   @IsNumber()
-  roleId: number;
+  role_id: number;
 }
 
 export class AssignCafeRoleDto {
@@ -55,7 +55,7 @@ export class AssignCafeRoleDto {
   })
   @Type(() => Number)
   @IsNumber()
-  userId: number;
+  user_id: number;
 
   @ApiProperty({
     description: 'Café role ID to assign',
@@ -63,5 +63,5 @@ export class AssignCafeRoleDto {
   })
   @Type(() => Number)
   @IsNumber()
-  roleId: number;
+  role_id: number;
 }

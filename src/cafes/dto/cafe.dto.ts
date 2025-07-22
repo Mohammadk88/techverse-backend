@@ -42,7 +42,7 @@ export class CreateCafeDto {
   })
   @IsOptional()
   @IsUrl()
-  coverImage?: string;
+  cover_image?: string;
 
   @ApiProperty({
     description: 'Whether the cafe is private',
@@ -51,7 +51,7 @@ export class CreateCafeDto {
   })
   @IsOptional()
   @IsBoolean()
-  isPrivate?: boolean;
+  is_private?: boolean;
 
   @ApiPropertyOptional({
     description: 'Language code for the cafe (ISO 639-1)',
@@ -59,7 +59,7 @@ export class CreateCafeDto {
   })
   @IsOptional()
   @IsString()
-  languageCode?: string;
+  language_code?: string;
 
   @ApiPropertyOptional({
     description: 'Country code for the cafe (ISO 3166-1 alpha-2)',
@@ -67,7 +67,7 @@ export class CreateCafeDto {
   })
   @IsOptional()
   @IsString()
-  countryCode?: string;
+  country_code?: string;
 }
 
 export class UpdateCafeDto extends PartialType(CreateCafeDto) {}
@@ -103,14 +103,14 @@ export class CafeFilterDto extends PaginationDto {
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
-  isPrivate?: boolean;
+  is_private?: boolean;
 
   @ApiPropertyOptional({
     description: 'Filter by owner ID',
     required: false,
   })
   @IsOptional()
-  ownerId?: number;
+  owner_id?: number;
 
   @ApiPropertyOptional({
     description: 'Show popular cafes only',
@@ -127,7 +127,7 @@ export class CafeFilterDto extends PaginationDto {
   })
   @IsOptional()
   @IsString()
-  languageCode?: string;
+  language_code?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by country code (ISO 3166-1 alpha-2)',
@@ -135,5 +135,5 @@ export class CafeFilterDto extends PaginationDto {
   })
   @IsOptional()
   @IsString()
-  countryCode?: string;
+  country_code?: string;
 }

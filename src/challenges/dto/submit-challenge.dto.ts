@@ -9,7 +9,7 @@ export class SubmitChallengeDto {
   })
   @IsString()
   @IsUrl()
-  submissionUrl: string;
+  submission_url: string;
 
   @ApiProperty({
     description: 'Live demo URL (optional)',

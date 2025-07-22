@@ -85,7 +85,7 @@ export class UserResponseDto {
   xp: number;
   countryId?: number;
   languageId?: number;
-  isActive: boolean;
+  is_active: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

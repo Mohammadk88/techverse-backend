@@ -52,14 +52,14 @@ export class ProjectsController {
         id: 25,
         title: 'TechVerse Mobile App',
         description: 'React Native mobile application for TechVerse platform',
-        isPrivate: false,
+        is_private: false,
         status: 'ACTIVE',
         createdBy: {
           id: 123,
           username: 'johndoe',
         },
         taskCount: 0,
-        createdAt: '2025-07-16T15:30:00Z',
+        created_at: '2025-07-16T15:30:00Z',
       },
     },
   })
@@ -100,7 +100,7 @@ export class ProjectsController {
   }
 
   @Get('my-applications')
-  @ApiOperation({ summary: 'Get current user task applications' })
+  @ApiOperation({ summary: 'Get current user task.task_applications' })
   @ApiResponse({
     status: 200,
     description: 'User applications retrieved successfully',
@@ -147,7 +147,7 @@ export class ProjectsController {
   @ApiResponse({ status: 403, description: 'Project is private' })
   @ApiParam({ name: 'id', type: 'number' })
   async getProject(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    return this.projectsService.getProjectById(id, req.user?.userId);
+    return this.projectsService.getProjectById(id, req.user?.user_id);
   }
 
   @Patch(':id')
@@ -186,12 +186,12 @@ export class ProjectsController {
   @ApiResponse({ status: 403, description: 'Only project owner can add tasks' })
   @ApiParam({ name: 'id', type: 'number' })
   async createTask(
-    @Param('id', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) project_id: number,
     @Body() createTaskDto: CreateTaskDto,
     @Request() req,
   ) {
     return this.projectsService.createTask(
-      projectId,
+      project_id,
       req.user.id,
       createTaskDto,
     );
@@ -260,14 +260,14 @@ export class ProjectsController {
   @ApiResponse({ status: 409, description: 'Already applied or task assigned' })
   @ApiParam({ name: 'id', type: 'number' })
   async applyToTask(
-    @Param('id', ParseIntPipe) taskId: number,
+    @Param('id', ParseIntPipe) task_id: number,
     @Body() applyDto: ApplyToTaskDto,
     @Request() req,
   ) {
-    return this.projectsService.applyToTask(taskId, req.user.id, applyDto);
+    return this.projectsService.applyToTask(task_id, req.user.id, applyDto);
   }
 
-  @Post('tasks/:taskId/assign/:applicantId')
+  @Post('tasks/:task_id/assign/:applicant_id')
   @ApiOperation({ summary: 'Assign task to an applicant' })
   @ApiResponse({ status: 201, description: 'Task assigned successfully' })
   @ApiResponse({ status: 404, description: 'Task not found' })
@@ -277,14 +277,14 @@ export class ProjectsController {
     description: 'User has not applied or insufficient balance',
   })
   @ApiResponse({ status: 409, description: 'Task already assigned' })
-  @ApiParam({ name: 'taskId', type: 'number' })
-  @ApiParam({ name: 'applicantId', type: 'number' })
+  @ApiParam({ name: 'task_id', type: 'number' })
+  @ApiParam({ name: 'applicant_id', type: 'number' })
   async assignTask(
-    @Param('taskId', ParseIntPipe) taskId: number,
-    @Param('applicantId', ParseIntPipe) applicantId: number,
+    @Param('task_id', ParseIntPipe) task_id: number,
+    @Param('applicant_id', ParseIntPipe) applicant_id: number,
     @Request() req,
   ) {
-    return this.projectsService.assignTask(taskId, applicantId, req.user.id);
+    return this.projectsService.assignTask(task_id, applicant_id, req.user.id);
   }
 
   @Post('tasks/:id/complete')

@@ -7,54 +7,54 @@ export class RolesService {
 
   // Global Roles
   async getGlobalRoles() {
-    return this.prisma.globalRole.findMany({
+    return this.prisma.global_roles.findMany({
       orderBy: { name: 'asc' },
     });
   }
 
-  async createGlobalRole(name: string, description?: string) {
-    return this.prisma.globalRole.create({
-      data: { name, description },
+  async createGlobalRole(role_name: string, description?: string) {
+    return this.prisma.global_roles.create({
+      data: { name: role_name, description, updated_at: new Date() },
     });
   }
 
   // Café Roles
   async getCafeRoles() {
-    return this.prisma.cafeRole.findMany({
+    return this.prisma.cafe_roles.findMany({
       orderBy: { name: 'asc' },
     });
   }
 
-  async createCafeRole(name: string, description?: string) {
-    return this.prisma.cafeRole.create({
-      data: { name, description },
+  async createCafeRole(role_name: string, description?: string) {
+    return this.prisma.cafe_roles.create({
+      data: { name: role_name, description, updated_at: new Date() },
     });
   }
 
   // User Global Role Assignment
-  async assignGlobalRole(userId: number, roleId: number) {
+  async assignGlobalRole(user_id: number, role_id: number) {
     // Check if user exists
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+    const user = await this.prisma.users.findUnique({
+      where: { id: user_id },
     });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     // Check if role exists
-    const role = await this.prisma.globalRole.findUnique({
-      where: { id: roleId },
+    const role = await this.prisma.user_global_roles.findUnique({
+      where: { id: role_id },
     });
     if (!role) {
       throw new NotFoundException('Role not found');
     }
 
     // Check if assignment already exists
-    const existingAssignment = await this.prisma.userGlobalRole.findUnique({
+    const existingAssignment = await this.prisma.user_global_roles.findUnique({
       where: {
-        userId_roleId: {
-          userId,
-          roleId,
+        user_id_role_id: {
+          user_id,
+          role_id,
         },
       },
     });
@@ -63,29 +63,29 @@ export class RolesService {
       throw new BadRequestException('User already has this role');
     }
 
-    return this.prisma.userGlobalRole.create({
-      data: { userId, roleId },
+    return this.prisma.user_global_roles.create({
+      data: { user_id, role_id },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             email: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             username: true,
           },
         },
-        role: true,
+        global_roles: true,
       },
     });
   }
 
-  async removeGlobalRole(userId: number, roleId: number) {
-    const assignment = await this.prisma.userGlobalRole.findUnique({
+  async removeGlobalRole(user_id: number, role_id: number) {
+    const assignment = await this.prisma.user_global_roles.findUnique({
       where: {
-        userId_roleId: {
-          userId,
-          roleId,
+        user_id_role_id: {
+          user_id,
+          role_id,
         },
       },
     });
@@ -94,49 +94,49 @@ export class RolesService {
       throw new NotFoundException('Role assignment not found');
     }
 
-    return this.prisma.userGlobalRole.delete({
+    return this.prisma.user_global_roles.delete({
       where: {
-        userId_roleId: {
-          userId,
-          roleId,
+        user_id_role_id: {
+          user_id,
+          role_id,
         },
       },
     });
   }
 
   // User Café Role Assignment
-  async assignCafeRole(userId: number, cafeId: number, roleId: number) {
+  async assignCafeRole(user_id: number, cafe_id: number, role_id: number) {
     // Check if user exists
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+    const user = await this.prisma.users.findUnique({
+      where: { id: user_id },
     });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     // Check if café exists
-    const cafe = await this.prisma.cafe.findUnique({
-      where: { id: cafeId },
+    const cafe = await this.prisma.cafes.findUnique({
+      where: { id: cafe_id },
     });
     if (!cafe) {
       throw new NotFoundException('Café not found');
     }
 
     // Check if role exists
-    const role = await this.prisma.cafeRole.findUnique({
-      where: { id: roleId },
+    const role = await this.prisma.cafe_roles.findUnique({
+      where: { id: role_id },
     });
     if (!role) {
       throw new NotFoundException('Café role not found');
     }
 
     // Check if assignment already exists
-    const existingAssignment = await this.prisma.userCafeRole.findUnique({
+    const existingAssignment = await this.prisma.user_cafe_roles.findUnique({
       where: {
-        userId_cafeId_roleId: {
-          userId,
-          cafeId,
-          roleId,
+        user_id_cafe_id_role_id: {
+          user_id,
+          cafe_id,
+          role_id,
         },
       },
     });
@@ -145,37 +145,37 @@ export class RolesService {
       throw new BadRequestException('User already has this role in this café');
     }
 
-    return this.prisma.userCafeRole.create({
-      data: { userId, cafeId, roleId },
+    return this.prisma.user_cafe_roles.create({
+      data: { user_id, cafe_id, role_id },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             email: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             username: true,
           },
         },
-        cafe: {
+        cafes: {
           select: {
             id: true,
             name: true,
             slug: true,
           },
         },
-        role: true,
+        cafe_roles: true,
       },
     });
   }
 
-  async removeCafeRole(userId: number, cafeId: number, roleId: number) {
-    const assignment = await this.prisma.userCafeRole.findUnique({
+  async removeCafeRole(user_id: number, cafe_id: number, role_id: number) {
+    const assignment = await this.prisma.user_cafe_roles.findUnique({
       where: {
-        userId_cafeId_roleId: {
-          userId,
-          cafeId,
-          roleId,
+        user_id_cafe_id_role_id: {
+          user_id,
+          cafe_id,
+          role_id,
         },
       },
     });
@@ -184,36 +184,36 @@ export class RolesService {
       throw new NotFoundException('Café role assignment not found');
     }
 
-    return this.prisma.userCafeRole.delete({
+    return this.prisma.user_cafe_roles.delete({
       where: {
-        userId_cafeId_roleId: {
-          userId,
-          cafeId,
-          roleId,
+        user_id_cafe_id_role_id: {
+          user_id,
+          cafe_id,
+          role_id,
         },
       },
     });
   }
 
   // Helper methods to check user permissions
-  async getUserGlobalRoles(userId: number) {
-    return this.prisma.userGlobalRole.findMany({
-      where: { userId },
-      include: { role: true },
+  async getUserGlobalRoles(user_id: number) {
+    return this.prisma.user_global_roles.findMany({
+      where: { user_id },
+      include: { global_roles: true },
     });
   }
 
-  async getUserCafeRoles(userId: number, cafeId?: number) {
-    const where: any = { userId };
-    if (cafeId) {
-      where.cafeId = cafeId;
+  async getUserCafeRoles(user_id: number, cafe_id?: number) {
+    const where: any = { user_id };
+    if (cafe_id) {
+      where.cafe_id = cafe_id;
     }
 
-    return this.prisma.userCafeRole.findMany({
+    return this.prisma.user_cafe_roles.findMany({
       where,
       include: {
-        role: true,
-        cafe: {
+        cafe_roles: true,
+        cafes: {
           select: {
             id: true,
             name: true,
@@ -224,11 +224,11 @@ export class RolesService {
     });
   }
 
-  async hasGlobalRole(userId: number, roleName: string): Promise<boolean> {
-    const assignment = await this.prisma.userGlobalRole.findFirst({
+  async hasGlobalRole(user_id: number, roleName: string): Promise<boolean> {
+    const assignment = await this.prisma.user_global_roles.findFirst({
       where: {
-        userId,
-        role: { name: roleName },
+        user_id,
+        global_roles: { name: roleName },
       },
     });
 
@@ -236,15 +236,15 @@ export class RolesService {
   }
 
   async hasCafeRole(
-    userId: number,
-    cafeId: number,
+    user_id: number,
+    cafe_id: number,
     roleName: string,
   ): Promise<boolean> {
-    const assignment = await this.prisma.userCafeRole.findFirst({
+    const assignment = await this.prisma.user_cafe_roles.findFirst({
       where: {
-        userId,
-        cafeId,
-        role: { name: roleName },
+        user_id,
+        cafe_id,
+        cafe_roles: { name: roleName },
       },
     });
 

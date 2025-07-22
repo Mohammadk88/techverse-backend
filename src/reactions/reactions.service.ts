@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
-import { ReactionType } from '@prisma/client';
+import { reaction_types } from '@prisma/client';
 import {
   CreateReactionDto,
   ReactionStatsDto,
@@ -20,14 +20,14 @@ export class ReactionsService {
   ) {}
 
   async addReaction(
-    userId: number,
+    user_id: number,
     createReactionDto: CreateReactionDto,
   ): Promise<ReactionResponseDto> {
-    const { type, articleId, projectId, challengeId, cafePostId } =
+    const { type, article_id, project_id, challengeId, cafePostId } =
       createReactionDto;
 
     // Validate that exactly one content ID is provided
-    const contentIds = [articleId, projectId, challengeId, cafePostId].filter(
+    const contentIds = [article_id, project_id, challengeId, cafePostId].filter(
       Boolean,
     );
     if (contentIds.length !== 1) {
@@ -38,18 +38,18 @@ export class ReactionsService {
 
     // Validate content exists
     await this.validateContentExists(
-      articleId,
-      projectId,
+      article_id,
+      project_id,
       challengeId,
       cafePostId,
     );
 
     // Check if user already has a reaction on this content
-    const existingReaction = await this.prisma.reaction.findFirst({
+    const existingReaction = await this.prisma.reactions.findFirst({
       where: {
-        userId,
-        ...(articleId && { articleId }),
-        ...(projectId && { projectId }),
+        user_id,
+        ...(article_id && { article_id }),
+        ...(project_id && { project_id }),
         ...(challengeId && { challengeId }),
         ...(cafePostId && { cafePostId }),
       },
@@ -58,16 +58,16 @@ export class ReactionsService {
     if (existingReaction) {
       // Update existing reaction if different type
       if (existingReaction.type !== type) {
-        const updatedReaction = await this.prisma.reaction.update({
+        const updatedReaction = await this.prisma.reactions.update({
           where: { id: existingReaction.id },
           data: { type },
           include: {
-            user: {
+            users: {
               select: {
                 id: true,
                 username: true,
-                firstName: true,
-                lastName: true,
+                first_name: true,
+                last_name: true,
                 avatar: true,
               },
             },
@@ -76,37 +76,38 @@ export class ReactionsService {
         return {
           id: updatedReaction.id,
           type: updatedReaction.type,
-          userId: updatedReaction.userId,
-          user: updatedReaction.user,
-          createdAt: updatedReaction.createdAt,
+          user_id: updatedReaction.user_id,
+          user: updatedReaction.users,
+          created_at: updatedReaction.created_at,
         };
       }
       // If same type, return existing reaction
       return {
         id: existingReaction.id,
         type: existingReaction.type,
-        userId: existingReaction.userId,
-        createdAt: existingReaction.createdAt,
+        user_id: existingReaction.user_id,
+        created_at: existingReaction.created_at,
       };
     }
 
     // Create new reaction
-    const newReaction = await this.prisma.reaction.create({
+    const newReaction = await this.prisma.reactions.create({
       data: {
-        userId,
+        user_id,
         type,
-        articleId,
-        projectId,
-        challengeId,
-        cafePostId,
+        article_id,
+        project_id,
+        challenge_id: challengeId,
+        cafe_post_id: cafePostId,
+        updated_at: new Date(),
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             username: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             avatar: true,
           },
         },
@@ -115,11 +116,11 @@ export class ReactionsService {
 
     // Award points for reaction
     try {
-      await this.walletService.earnTechCoin(userId, {
+      await this.walletService.earnTechCoin(user_id, {
         amount: 1,
         description: `Reaction on ${this.getContentType(
-          articleId,
-          projectId,
+          article_id,
+          project_id,
           challengeId,
           cafePostId,
         )}`,
@@ -133,24 +134,24 @@ export class ReactionsService {
     return {
       id: newReaction.id,
       type: newReaction.type,
-      userId: newReaction.userId,
-      user: newReaction.user,
-      createdAt: newReaction.createdAt,
+      user_id: newReaction.user_id,
+      user: newReaction.users,
+      created_at: newReaction.created_at,
     };
   }
 
   async removeReaction(
-    userId: number,
-    articleId?: number,
-    projectId?: number,
+    user_id: number,
+    article_id?: number,
+    project_id?: number,
     challengeId?: number,
     cafePostId?: number,
   ): Promise<{ message: string }> {
-    const reaction = await this.prisma.reaction.findFirst({
+    const reaction = await this.prisma.reactions.findFirst({
       where: {
-        userId,
-        ...(articleId && { articleId }),
-        ...(projectId && { projectId }),
+        user_id,
+        ...(article_id && { article_id }),
+        ...(project_id && { project_id }),
         ...(challengeId && { challengeId }),
         ...(cafePostId && { cafePostId }),
       },
@@ -160,7 +161,7 @@ export class ReactionsService {
       throw new NotFoundException('Reaction not found');
     }
 
-    await this.prisma.reaction.delete({
+    await this.prisma.reactions.delete({
       where: { id: reaction.id },
     });
 
@@ -168,16 +169,16 @@ export class ReactionsService {
   }
 
   async getReactionStats(
-    articleId?: number,
-    projectId?: number,
+    article_id?: number,
+    project_id?: number,
     challengeId?: number,
     cafePostId?: number,
-    userId?: number,
+    user_id?: number,
   ): Promise<ReactionStatsDto> {
-    const reactions = await this.prisma.reaction.findMany({
+    const reactions = await this.prisma.reactions.findMany({
       where: {
-        ...(articleId && { articleId }),
-        ...(projectId && { projectId }),
+        ...(article_id && { article_id }),
+        ...(project_id && { project_id }),
         ...(challengeId && { challengeId }),
         ...(cafePostId && { cafePostId }),
       },
@@ -189,19 +190,19 @@ export class ReactionsService {
         acc[reaction.type] = (acc[reaction.type] || 0) + 1;
         return acc;
       },
-      {} as Record<ReactionType, number>,
+      {} as Record<reaction_types, number>,
     );
 
     // Ensure all reaction types are present
-    Object.values(ReactionType).forEach((type) => {
+    Object.values(reaction_types).forEach((type) => {
       if (!breakdown[type]) {
         breakdown[type] = 0;
       }
     });
 
-    // Get user's reaction if userId provided
-    const userReaction = userId
-      ? reactions.find((r) => r.userId === userId)?.type
+    // Get user's reaction if user_id provided
+    const userReaction = user_id
+      ? reactions.find((r) => r.user_id === user_id)?.type
       : undefined;
 
     return {
@@ -212,8 +213,8 @@ export class ReactionsService {
   }
 
   async getContentReactions(
-    articleId?: number,
-    projectId?: number,
+    article_id?: number,
+    project_id?: number,
     challengeId?: number,
     cafePostId?: number,
     page: number = 1,
@@ -230,32 +231,32 @@ export class ReactionsService {
     const skip = (page - 1) * limit;
 
     const [reactions, total] = await Promise.all([
-      this.prisma.reaction.findMany({
+      this.prisma.reactions.findMany({
         where: {
-          ...(articleId && { articleId }),
-          ...(projectId && { projectId }),
+          ...(article_id && { article_id }),
+          ...(project_id && { project_id }),
           ...(challengeId && { challengeId }),
           ...(cafePostId && { cafePostId }),
         },
         include: {
-          user: {
+          users: {
             select: {
               id: true,
               username: true,
-              firstName: true,
-              lastName: true,
+              first_name: true,
+              last_name: true,
               avatar: true,
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.reaction.count({
+      this.prisma.reactions.count({
         where: {
-          ...(articleId && { articleId }),
-          ...(projectId && { projectId }),
+          ...(article_id && { article_id }),
+          ...(project_id && { project_id }),
           ...(challengeId && { challengeId }),
           ...(cafePostId && { cafePostId }),
         },
@@ -266,9 +267,9 @@ export class ReactionsService {
       reactions: reactions.map((reaction) => ({
         id: reaction.id,
         type: reaction.type,
-        userId: reaction.userId,
-        user: reaction.user,
-        createdAt: reaction.createdAt,
+        user_id: reaction.user_id,
+        user: reaction.users,
+        created_at: reaction.created_at,
       })),
       pagination: {
         page,
@@ -280,23 +281,23 @@ export class ReactionsService {
   }
 
   private async validateContentExists(
-    articleId?: number,
-    projectId?: number,
+    article_id?: number,
+    project_id?: number,
     challengeId?: number,
     cafePostId?: number,
   ): Promise<void> {
-    if (articleId) {
-      const article = await this.prisma.article.findUnique({
-        where: { id: articleId },
+    if (article_id) {
+      const article = await this.prisma.article_tags.findUnique({
+        where: { id: article_id },
       });
       if (!article) {
         throw new NotFoundException('Article not found');
       }
     }
 
-    if (projectId) {
-      const project = await this.prisma.project.findUnique({
-        where: { id: projectId },
+    if (project_id) {
+      const project = await this.prisma.projects.findUnique({
+        where: { id: project_id },
       });
       if (!project) {
         throw new NotFoundException('Project not found');
@@ -304,7 +305,7 @@ export class ReactionsService {
     }
 
     if (challengeId) {
-      const challenge = await this.prisma.challenge.findUnique({
+      const challenge = await this.prisma.challenges.findUnique({
         where: { id: challengeId },
       });
       if (!challenge) {
@@ -313,7 +314,7 @@ export class ReactionsService {
     }
 
     if (cafePostId) {
-      const cafePost = await this.prisma.cafePost.findUnique({
+      const cafePost = await this.prisma.cafe_posts.findUnique({
         where: { id: cafePostId },
       });
       if (!cafePost) {
@@ -323,13 +324,13 @@ export class ReactionsService {
   }
 
   private getContentType(
-    articleId?: number,
-    projectId?: number,
+    article_id?: number,
+    project_id?: number,
     challengeId?: number,
     cafePostId?: number,
   ): string {
-    if (articleId) return 'article';
-    if (projectId) return 'project';
+    if (article_id) return 'article';
+    if (project_id) return 'project';
     if (challengeId) return 'challenge';
     if (cafePostId) return 'cafe post';
     return 'content';

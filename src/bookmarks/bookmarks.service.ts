@@ -10,23 +10,23 @@ import { CreateBookmarkDto, BookmarkFilterDto } from './dto/bookmark.dto';
 export class BookmarksService {
   constructor(private prisma: PrismaService) {}
 
-  async createBookmark(userId: number, createBookmarkDto: CreateBookmarkDto) {
-    const { articleId } = createBookmarkDto;
+  async createBookmark(user_id: number, createBookmarkDto: CreateBookmarkDto) {
+    const { article_id } = createBookmarkDto;
 
     // Validate that the article exists
-    const article = await this.prisma.article.findUnique({
-      where: { id: articleId },
+    const article = await this.prisma.article_tags.findUnique({
+      where: { id: article_id },
     });
     if (!article) {
       throw new NotFoundException('Article not found');
     }
 
     // Check if bookmark already exists
-    const existingBookmark = await this.prisma.bookmark.findUnique({
+    const existingBookmark = await this.prisma.bookmarks.findUnique({
       where: { 
-        userId_articleId: {
-          userId,
-          articleId
+        user_id_article_id: {
+          user_id,
+          article_id
         }
       },
     });
@@ -36,28 +36,28 @@ export class BookmarksService {
     }
 
     // Create bookmark
-    return await this.prisma.bookmark.create({
+    return await this.prisma.bookmarks.create({
       data: {
-        userId,
-        articleId,
+        user_id,
+        article_id,
       },
       include: {
-        article: {
+        articles: {
           select: {
             id: true,
             title: true,
             slug: true,
             excerpt: true,
-            featuredImage: true,
-            publishedAt: true,
-            author: {
+            featured_image: true,
+            published_at: true,
+            users: {
               select: {
                 id: true,
                 username: true,
                 avatar: true,
               },
             },
-            category: {
+            article_categories: {
               select: {
                 id: true,
                 name: true,
@@ -70,33 +70,33 @@ export class BookmarksService {
     });
   }
 
-  async getBookmarks(userId: number, filterDto: BookmarkFilterDto) {
+  async getBookmarks(user_id: number, filterDto: BookmarkFilterDto) {
     const { page = 1, limit = 10 } = filterDto;
     const skip = (page - 1) * limit;
 
     const [bookmarks, total] = await Promise.all([
-      this.prisma.bookmark.findMany({
-        where: { userId },
+      this.prisma.bookmarks.findMany({
+        where: { user_id },
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         include: {
-          article: {
+          articles: {
             select: {
               id: true,
               title: true,
               slug: true,
               excerpt: true,
-              featuredImage: true,
-              publishedAt: true,
-              author: {
+              featured_image: true,
+              published_at: true,
+              users: {
                 select: {
                   id: true,
                   username: true,
                   avatar: true,
                 },
               },
-              category: {
+              article_categories: {
                 select: {
                   id: true,
                   name: true,
@@ -107,7 +107,7 @@ export class BookmarksService {
           },
         },
       }),
-      this.prisma.bookmark.count({ where: { userId } }),
+      this.prisma.bookmarks.count({ where: { user_id } }),
     ]);
 
     return {
@@ -121,29 +121,29 @@ export class BookmarksService {
     };
   }
 
-  async getBookmarkById(id: number, userId: number) {
-    const bookmark = await this.prisma.bookmark.findFirst({
+  async getBookmarkById(id: number, user_id: number) {
+    const bookmark = await this.prisma.bookmarks.findFirst({
       where: {
         id,
-        userId,
+        user_id,
       },
       include: {
-        article: {
+        articles: {
           select: {
             id: true,
             title: true,
             slug: true,
             excerpt: true,
-            featuredImage: true,
-            publishedAt: true,
-            author: {
+            featured_image: true,
+            published_at: true,
+            users: {
               select: {
                 id: true,
                 username: true,
                 avatar: true,
               },
             },
-            category: {
+            article_categories: {
               select: {
                 id: true,
                 name: true,
@@ -162,11 +162,11 @@ export class BookmarksService {
     return bookmark;
   }
 
-  async deleteBookmark(id: number, userId: number) {
-    const bookmark = await this.prisma.bookmark.findFirst({
+  async deleteBookmark(id: number, user_id: number) {
+    const bookmark = await this.prisma.bookmarks.findFirst({
       where: {
         id,
-        userId,
+        user_id,
       },
     });
 
@@ -174,20 +174,20 @@ export class BookmarksService {
       throw new NotFoundException('Bookmark not found');
     }
 
-    await this.prisma.bookmark.delete({
+    await this.prisma.bookmarks.delete({
       where: { id },
     });
 
     return { message: 'Bookmark deleted successfully' };
   }
 
-  async removeArticleBookmark(userId: number, articleId: number) {
-    const bookmark = await this.prisma.bookmark.findUnique({
+  async removeArticleBookmark(user_id: number, article_id: number) {
+    const bookmark = await this.prisma.bookmarks.findUnique({
       where: {
-        userId_articleId: {
-          userId,
-          articleId
-        }
+        user_id_article_id: {
+          user_id,
+          article_id,
+        },
       },
     });
 
@@ -195,16 +195,16 @@ export class BookmarksService {
       throw new NotFoundException('Bookmark not found');
     }
 
-    await this.prisma.bookmark.delete({
+    await this.prisma.bookmarks.delete({
       where: { id: bookmark.id },
     });
 
     return { message: 'Article bookmark removed successfully' };
   }
 
-  async getBookmarkStats(userId: number) {
-    const totalBookmarks = await this.prisma.bookmark.count({
-      where: { userId },
+  async getBookmarkStats(user_id: number) {
+    const totalBookmarks = await this.prisma.bookmarks.count({
+      where: { user_id },
     });
 
     return {

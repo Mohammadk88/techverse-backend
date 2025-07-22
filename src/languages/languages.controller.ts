@@ -18,11 +18,11 @@ export class LanguagesController {
       {
         id: 1,
         name: 'English',
-        nativeName: 'English',
+        native_name: 'English',
         code: 'en',
         direction: 'ltr',
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-01T00:00:00.000Z',
+        created_at: '2025-01-01T00:00:00.000Z',
+        updated_at: '2025-01-01T00:00:00.000Z',
       },
     ],
   })

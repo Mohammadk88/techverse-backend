@@ -14,11 +14,7 @@ import {
   ArticleFilterDto,
   AIGenerateArticleDto,
 } from './dto/article.dto';
-import { ScheduleArticleDto } from './dto/schedule-article.dto';
-import { BoostArticleDto } from './dto/boost-article.dto';
-import { EnhanceArticleDto } from './dto/enhance-article.dto';
 import { PaginationDto, PaginatedResult } from '../common/dto/pagination.dto';
-import { UserRole } from '../common/decorators/roles.decorator';
 import { AIService } from '../ai/ai.service';
 import { ContentQueryService } from '../common/services/content-query.service';
 
@@ -32,14 +28,14 @@ export class ArticlesService {
   ) {}
 
   // Article CRUD Operations
-  async create(createArticleDto: CreateArticleDto, authorId: number) {
-    const { tagIds, scheduledFor, ...articleData } = createArticleDto;
+  async create(createArticleDto: CreateArticleDto, author_id: number) {
+    const { tagIds, scheduled_for, ...articleData } = createArticleDto;
 
     // Generate slug from title
     const slug = this.generateSlug(articleData.title);
 
     // Check if slug already exists
-    const existingArticle = await this.prisma.article.findUnique({
+    const existingArticle = await this.prisma.articles.findUnique({
       where: { slug },
     });
 
@@ -48,49 +44,50 @@ export class ArticlesService {
     }
 
     // Handle scheduling logic
-    let publishedAt: Date | null = null;
-    let isPublished = articleData.isPublished || false;
+    let published_at: Date | null = null;
+    let is_published = articleData.is_published || false;
     
-    if (scheduledFor) {
-      const scheduleDate = new Date(scheduledFor);
+    if (scheduled_for) {
+      const scheduleDate = new Date(scheduled_for);
       const now = new Date();
       
       if (scheduleDate <= now) {
         // If scheduled time is in the past or now, publish immediately
-        isPublished = true;
-        publishedAt = now;
+        is_published = true;
+        published_at = now;
       } else {
         // Schedule for future
-        isPublished = false;
-        publishedAt = null;
+        is_published = false;
+        published_at = null;
       }
-    } else if (isPublished) {
-      publishedAt = new Date();
+    } else if (is_published) {
+      published_at = new Date();
     }
 
-    const article = await this.prisma.article.create({
+    const article = await this.prisma.articles.create({
       data: {
         ...articleData,
         slug,
-        authorId,
-        isPublished,
-        publishedAt,
-        scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
+        author_id,
+        is_published,
+        published_at,
+        scheduled_for: scheduled_for ? new Date(scheduled_for) : null,
+        updated_at: new Date(),
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             username: true,
             avatar: true,
           },
         },
-        category: true,
-        tags: {
+        article_categories: true,
+        article_tag_relations: {
           include: {
-            tag: true,
+            article_tags: true,
           },
         },
       },
@@ -98,17 +95,17 @@ export class ArticlesService {
 
     // Add tags if provided
     if (tagIds && tagIds.length > 0) {
-      await this.prisma.articleTagRelation.createMany({
-        data: tagIds.map((tagId) => ({
-          articleId: article.id,
-          tagId,
+      await this.prisma.article_tag_relations.createMany({
+        data: tagIds.map((tag_id) => ({
+          article_id: article.id,
+          tag_id,
         })),
       });
     }
 
     // Award XP for publishing an article
-    if (isPublished) {
-      await this.authService.addXP(authorId, 50);
+    if (is_published) {
+      await this.authService.addXP(author_id, 50);
     }
 
     return this.findOne(article.id);
@@ -120,29 +117,29 @@ export class ArticlesService {
   ): Promise<PaginatedResult<any>> {
     const { page = 1, limit = 10 } = paginationDto;
     const { 
-      categoryId, 
-      tagId, 
+      category_id, 
+      tag_id, 
       search, 
-      isPublished, 
-      isAI, 
+      is_published, 
+      is_ai, 
       status, 
       featured, 
       thisWeek,
-      languageCode,
-      countryCode 
+      language_code,
+      country_code 
     } = filterDto;
     const skip = (page - 1) * limit;
 
     let baseWhere: any = {};
 
-    if (categoryId) {
-      baseWhere.categoryId = categoryId;
+    if (category_id) {
+      baseWhere.category_id = category_id;
     }
 
-    if (tagId) {
+    if (tag_id) {
       baseWhere.tags = {
         some: {
-          tagId,
+          tag_id,
         },
       };
     }
@@ -155,12 +152,12 @@ export class ArticlesService {
       ];
     }
 
-    if (isPublished !== undefined) {
-      baseWhere.isPublished = isPublished;
+    if (is_published !== undefined) {
+      baseWhere.is_published = is_published;
     }
 
-    if (isAI !== undefined) {
-      baseWhere.isAI = isAI;
+    if (is_ai !== undefined) {
+      baseWhere.is_ai = is_ai;
     }
 
     if (featured !== undefined) {
@@ -171,7 +168,7 @@ export class ArticlesService {
     if (thisWeek) {
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      baseWhere.createdAt = {
+      baseWhere.created_at = {
         gte: weekAgo,
       };
     }
@@ -181,15 +178,15 @@ export class ArticlesService {
       const now = new Date();
       switch (status) {
         case 'published':
-          baseWhere.isPublished = true;
+          baseWhere.is_published = true;
           break;
         case 'draft':
-          baseWhere.isPublished = false;
-          baseWhere.scheduledFor = null;
+          baseWhere.is_published = false;
+          baseWhere.scheduled_for = null;
           break;
         case 'scheduled':
-          baseWhere.isPublished = false;
-          baseWhere.scheduledFor = {
+          baseWhere.is_published = false;
+          baseWhere.scheduled_for = {
             gt: now,
           };
           break;
@@ -199,28 +196,28 @@ export class ArticlesService {
     // Apply localization filtering
     const where = this.contentQueryService.createLocalizedWhereClause(
       baseWhere, 
-      { languageCode, countryCode }
+      { language_code, country_code }
     );
 
     const [articles, total] = await Promise.all([
-      this.prisma.article.findMany({
+      this.prisma.articles.findMany({
         where,
         skip,
         take: limit,
         include: {
-          author: {
+          users: {
             select: {
               id: true,
-              firstName: true,
-              lastName: true,
+              first_name: true,
+              last_name: true,
               username: true,
               avatar: true,
             },
           },
-          category: true,
-          tags: {
+          article_categories: true,
+          article_tag_relations: {
             include: {
-              tag: true,
+              article_tags: true,
             },
           },
           _count: {
@@ -230,10 +227,10 @@ export class ArticlesService {
           },
         },
         orderBy: {
-          publishedAt: 'desc',
+          published_at: 'desc',
         },
       }),
-      this.prisma.article.count({ where }),
+      this.prisma.articles.count({ where }),
     ]);
 
     return {
@@ -248,23 +245,23 @@ export class ArticlesService {
   }
 
   async findOne(id: number) {
-    const article = await this.prisma.article.findUnique({
+    const article = await this.prisma.articles.findUnique({
       where: { id },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             username: true,
             avatar: true,
             bio: true,
           },
         },
-        category: true,
-        tags: {
+        article_categories: true,
+        article_tag_relations: {
           include: {
-            tag: true,
+            article_tags: true,
           },
         },
         _count: {
@@ -283,23 +280,23 @@ export class ArticlesService {
   }
 
   async findBySlug(slug: string) {
-    const article = await this.prisma.article.findUnique({
+    const article = await this.prisma.articles.findUnique({
       where: { slug },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             username: true,
             avatar: true,
             bio: true,
           },
         },
-        category: true,
-        tags: {
+        article_categories: true,
+        article_tag_relations: {
           include: {
-            tag: true,
+            article_tags: true,
           },
         },
         _count: {
@@ -317,17 +314,17 @@ export class ArticlesService {
     return article;
   }
 
-  async update(id: number, updateArticleDto: UpdateArticleDto, userId: number) {
-    const existingArticle = await this.prisma.article.findUnique({
+  async update(id: number, updateArticleDto: UpdateArticleDto, user_id: number) {
+    const existingArticle = await this.prisma.articles.findUnique({
       where: { id },
-      select: { authorId: true, isPublished: true },
+      select: { author_id: true, is_published: true },
     });
 
     if (!existingArticle) {
       throw new NotFoundException('Article not found');
     }
 
-    if (existingArticle.authorId !== userId) {
+    if (existingArticle.author_id !== user_id) {
       throw new ForbiddenException('You can only update your own articles');
     }
 
@@ -336,7 +333,7 @@ export class ArticlesService {
     // Update slug if title is changed
     if (articleData.title) {
       const slug = this.generateSlug(articleData.title);
-      const existingSlug = await this.prisma.article.findUnique({
+      const existingSlug = await this.prisma.articles.findUnique({
         where: { slug },
       });
 
@@ -347,14 +344,14 @@ export class ArticlesService {
       articleData['slug'] = slug;
     }
 
-    // Set publishedAt if publishing for the first time
-    if (articleData.isPublished && !existingArticle.isPublished) {
-      articleData['publishedAt'] = new Date();
+    // Set published_at if publishing for the first time
+    if (articleData.is_published && !existingArticle.is_published) {
+      articleData['published_at'] = new Date();
       // Award XP for publishing
-      await this.authService.addXP(userId, 50);
+      await this.authService.addXP(user_id, 50);
     }
 
-    const article = await this.prisma.article.update({
+    const article = await this.prisma.articles.update({
       where: { id },
       data: articleData,
     });
@@ -362,16 +359,16 @@ export class ArticlesService {
     // Update tags if provided
     if (tagIds !== undefined) {
       // Remove existing tag relations
-      await this.prisma.articleTagRelation.deleteMany({
-        where: { articleId: id },
+      await this.prisma.article_tag_relations.deleteMany({
+        where: { article_id: id },
       });
 
       // Add new tag relations
       if (tagIds.length > 0) {
-        await this.prisma.articleTagRelation.createMany({
-          data: tagIds.map((tagId) => ({
-            articleId: id,
-            tagId,
+        await this.prisma.article_tag_relations.createMany({
+          data: tagIds.map((tag_id) => ({
+            article_id: id,
+            tag_id,
           })),
         });
       }
@@ -380,10 +377,10 @@ export class ArticlesService {
     return this.findOne(id);
   }
 
-  async remove(id: number, userId: number, userRole: string) {
-    const article = await this.prisma.article.findUnique({
+  async remove(id: number, user_id: number, userRole: string) {
+    const article = await this.prisma.articles.findUnique({
       where: { id },
-      select: { authorId: true },
+      select: { author_id: true },
     });
 
     if (!article) {
@@ -391,11 +388,11 @@ export class ArticlesService {
     }
 
     // Only author or admin can delete
-    if (article.authorId !== userId && userRole !== UserRole.BARISTA) {
+    if (article.author_id !== user_id && userRole !== 'BARISTA') {
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    await this.prisma.article.delete({
+    await this.prisma.articles.delete({
       where: { id },
     });
 
@@ -406,7 +403,7 @@ export class ArticlesService {
   async createCategory(createCategoryDto: CreateCategoryDto) {
     const slug = this.generateSlug(createCategoryDto.name);
 
-    const existingCategory = await this.prisma.articleCategory.findUnique({
+    const existingCategory = await this.prisma.article_categories.findUnique({
       where: { slug },
     });
 
@@ -414,16 +411,17 @@ export class ArticlesService {
       throw new ConflictException('Category with this name already exists');
     }
 
-    return this.prisma.articleCategory.create({
+    return this.prisma.article_categories.create({
       data: {
         ...createCategoryDto,
         slug,
+        updated_at: new Date(),
       },
     });
   }
 
   async findAllCategories() {
-    return this.prisma.articleCategory.findMany({
+    return this.prisma.article_categories.findMany({
       include: {
         _count: {
           select: {
@@ -441,7 +439,7 @@ export class ArticlesService {
   async createTag(createTagDto: CreateTagDto) {
     const slug = this.generateSlug(createTagDto.name);
 
-    const existingTag = await this.prisma.articleTag.findUnique({
+    const existingTag = await this.prisma.article_tags.findUnique({
       where: { slug },
     });
 
@@ -449,20 +447,21 @@ export class ArticlesService {
       throw new ConflictException('Tag with this name already exists');
     }
 
-    return this.prisma.articleTag.create({
+    return this.prisma.article_tags.create({
       data: {
         ...createTagDto,
         slug,
+        updated_at: new Date(),
       },
     });
   }
 
   async findAllTags() {
-    return this.prisma.articleTag.findMany({
+    return this.prisma.article_tags.findMany({
       include: {
         _count: {
           select: {
-            articles: true,
+            article_tag_relations: true,
           },
         },
       },
@@ -475,7 +474,7 @@ export class ArticlesService {
   // AI-powered article generation
   async generateArticleWithAI(
     generateDto: AIGenerateArticleDto,
-    authorId: number,
+    author_id: number,
   ) {
     // Generate content using AI with specified provider
     const aiContent = await this.aiService.generateArticle(
@@ -489,43 +488,43 @@ export class ArticlesService {
       title: aiContent.title,
       content: aiContent.content,
       excerpt: aiContent.excerpt,
-      categoryId: generateDto.categoryId,
+      category_id: generateDto.category_id,
       tagIds: generateDto.tagIds,
-      isPublished: generateDto.publishNow || false,
-      scheduledFor: generateDto.scheduledFor,
-      isAI: true,
+      is_published: generateDto.publishNow || false,
+      scheduled_for: generateDto.scheduled_for,
+      is_ai: true,
       aiPrompt: generateDto.prompt,
     };
 
-    return this.create(createArticleDto, authorId);
+    return this.create(createArticleDto, author_id);
   }
 
   // =======================================================
   // ARTICLE SCHEDULING SYSTEM
   // =======================================================
 
-  async scheduleArticle(articleId: number, scheduleDto: any, userId: number) {
+  async scheduleArticle(article_id: number, scheduleDto: any, user_id: number) {
     // Check if article exists and user owns it
-    const article = await this.prisma.article.findUnique({
-      where: { id: articleId },
-      select: { authorId: true, isPublished: true, title: true },
+    const article = await this.prisma.articles.findUnique({
+      where: { id: article_id },
+      select: { author_id: true, is_published: true, title: true },
     });
 
     if (!article) {
       throw new NotFoundException('Article not found');
     }
 
-    if (article.authorId !== userId) {
+    if (article.author_id !== user_id) {
       throw new ForbiddenException('You can only schedule your own articles');
     }
 
-    if (article.isPublished) {
+    if (article.is_published) {
       throw new ConflictException('Cannot schedule already published article');
     }
 
     // Check if article already has a scheduled post
-    const existingSchedule = await this.prisma.scheduledPost.findUnique({
-      where: { articleId },
+    const existingSchedule = await this.prisma.scheduled_posts.findUnique({
+      where: { article_id },
     });
 
     if (existingSchedule) {
@@ -539,15 +538,16 @@ export class ArticlesService {
       throw new ConflictException('Cannot schedule article for past date');
     }
 
-    return this.prisma.scheduledPost.create({
+    return this.prisma.scheduled_posts.create({
       data: {
-        articleId,
-        userId,
-        publishAt,
-        aiEnhanced: scheduleDto.aiEnhanced || false,
+        article_id,
+        user_id,
+        publish_at: publishAt,
+        ai_enhanced: scheduleDto.aiEnhanced || false,
+        updated_at: new Date(),
       },
       include: {
-        article: {
+        articles: {
           select: {
             id: true,
             title: true,
@@ -558,41 +558,41 @@ export class ArticlesService {
     });
   }
 
-  async getScheduledPosts(userId: number) {
-    return this.prisma.scheduledPost.findMany({
-      where: { userId },
+  async getScheduledPosts(user_id: number) {
+    return this.prisma.scheduled_posts.findMany({
+      where: { user_id },
       include: {
-        article: {
+        articles: {
           select: {
             id: true,
             title: true,
             slug: true,
             excerpt: true,
-            featuredImage: true,
+            featured_image: true,
           },
         },
       },
       orderBy: {
-        publishAt: 'asc',
+        publish_at: 'asc',
       },
     });
   }
 
-  async cancelScheduledPost(scheduleId: number, userId: number) {
-    const scheduledPost = await this.prisma.scheduledPost.findUnique({
+  async cancelScheduledPost(scheduleId: number, user_id: number) {
+    const scheduledPost = await this.prisma.scheduled_posts.findUnique({
       where: { id: scheduleId },
-      select: { userId: true },
+      select: { user_id: true },
     });
 
     if (!scheduledPost) {
       throw new NotFoundException('Scheduled post not found');
     }
 
-    if (scheduledPost.userId !== userId) {
+    if (scheduledPost.user_id !== user_id) {
       throw new ForbiddenException('You can only cancel your own scheduled posts');
     }
 
-    await this.prisma.scheduledPost.update({
+    await this.prisma.scheduled_posts.update({
       where: { id: scheduleId },
       data: { status: 'CANCELED' },
     });
@@ -604,16 +604,16 @@ export class ArticlesService {
   // ARTICLE BOOSTING SYSTEM
   // =======================================================
 
-  async boostArticle(articleId: number, boostDto: any, userId: number) {
+  async boostArticle(article_id: number, boostDto: any, user_id: number) {
     // Check if article exists and is published
-    const article = await this.prisma.article.findUnique({
-      where: { id: articleId },
+    const article = await this.prisma.articles.findUnique({
+      where: { id: article_id },
       select: { 
         id: true, 
         title: true, 
         slug: true, 
-        isPublished: true, 
-        authorId: true 
+        is_published: true, 
+        author_id: true 
       },
     });
 
@@ -621,53 +621,53 @@ export class ArticlesService {
       throw new NotFoundException('Article not found');
     }
 
-    if (!article.isPublished) {
+    if (!article.is_published) {
       throw new ConflictException('Can only boost published articles');
     }
 
     // Check user's wallet balance
-    const wallet = await this.prisma.wallet.findUnique({
-      where: { userId },
-      select: { techCoin: true },
+    const wallet = await this.prisma.wallets.findUnique({
+      where: { user_id },
+      select: { tech_coin: true },
     });
 
-    if (!wallet || wallet.techCoin < boostDto.coinSpent) {
+    if (!wallet || wallet.tech_coin < boostDto.coinSpent) {
       throw new ConflictException('Insufficient TechCoin balance');
     }
 
-    const startDate = new Date(boostDto.startDate);
-    const endDate = new Date(boostDto.endDate);
+    const start_date = new Date(boostDto.start_date);
+    const end_date = new Date(boostDto.end_date);
     const now = new Date();
 
-    if (startDate >= endDate) {
+    if (start_date >= end_date) {
       throw new ConflictException('End date must be after start date');
     }
 
-    if (endDate <= now) {
+    if (end_date <= now) {
       throw new ConflictException('End date must be in the future');
     }
 
     // Check for overlapping boosts
-    const overlappingBoost = await this.prisma.articleBoost.findFirst({
+    const overlappingBoost = await this.prisma.article_boosts.findFirst({
       where: {
-        articleId,
+        article_id,
         OR: [
           {
             AND: [
-              { startDate: { lte: startDate } },
-              { endDate: { gte: startDate } },
+              { start_date: { lte: start_date } },
+              { end_date: { gte: start_date } },
             ],
           },
           {
             AND: [
-              { startDate: { lte: endDate } },
-              { endDate: { gte: endDate } },
+              { start_date: { lte: end_date } },
+              { end_date: { gte: end_date } },
             ],
           },
           {
             AND: [
-              { startDate: { gte: startDate } },
-              { endDate: { lte: endDate } },
+              { start_date: { gte: start_date } },
+              { end_date: { lte: end_date } },
             ],
           },
         ],
@@ -680,16 +680,16 @@ export class ArticlesService {
 
     // Deduct coins from wallet and create boost
     const [boost] = await this.prisma.$transaction([
-      this.prisma.articleBoost.create({
+      this.prisma.article_boosts.create({
         data: {
-          articleId,
-          userId,
-          coinSpent: boostDto.coinSpent,
-          startDate,
-          endDate,
+          article_id,
+          user_id,
+          coin_spent: boostDto.coinSpent,
+          start_date,
+          end_date,
         },
         include: {
-          article: {
+          articles: {
             select: {
               id: true,
               title: true,
@@ -698,13 +698,13 @@ export class ArticlesService {
           },
         },
       }),
-      this.prisma.wallet.update({
-        where: { userId },
-        data: { techCoin: { decrement: boostDto.coinSpent } },
+      this.prisma.wallets.update({
+        where: { user_id },
+        data: { tech_coin: { decrement: boostDto.coinSpent } },
       }),
-      this.prisma.walletTransaction.create({
+      this.prisma.wallet_transactions.create({
         data: {
-          userId,
+          user_id,
           type: 'SPEND',
           amount: boostDto.coinSpent,
           description: `Article boost: ${article.title}`,
@@ -715,9 +715,9 @@ export class ArticlesService {
     return boost;
   }
 
-  async getArticleBoosts(articleId: number) {
-    const article = await this.prisma.article.findUnique({
-      where: { id: articleId },
+  async getArticleBoosts(article_id: number) {
+    const article = await this.prisma.articles.findUnique({
+      where: { id: article_id },
       select: { id: true },
     });
 
@@ -725,40 +725,40 @@ export class ArticlesService {
       throw new NotFoundException('Article not found');
     }
 
-    return this.prisma.articleBoost.findMany({
-      where: { articleId },
+    return this.prisma.article_boosts.findMany({
+      where: { article_id },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             username: true,
             avatar: true,
           },
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        created_at: 'desc',
       },
     });
   }
 
-  async getUserBoosts(userId: number) {
-    return this.prisma.articleBoost.findMany({
-      where: { userId },
+  async getUserBoosts(user_id: number) {
+    return this.prisma.article_boosts.findMany({
+      where: { user_id },
       include: {
-        article: {
+        articles: {
           select: {
             id: true,
             title: true,
             slug: true,
-            featuredImage: true,
+            featured_image: true,
           },
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        created_at: 'desc',
       },
     });
   }
@@ -767,12 +767,12 @@ export class ArticlesService {
   // AI ENHANCEMENT SYSTEM
   // =======================================================
 
-  async enhanceArticleWithAI(articleId: number, enhanceDto: any, userId: number) {
+  async enhanceArticleWithAI(article_id: number, enhanceDto: any, user_id: number) {
     // Check if article exists and user owns it
-    const article = await this.prisma.article.findUnique({
-      where: { id: articleId },
+    const article = await this.prisma.articles.findUnique({
+      where: { id: article_id },
       select: { 
-        authorId: true, 
+        author_id: true, 
         title: true, 
         content: true, 
         excerpt: true 
@@ -783,7 +783,7 @@ export class ArticlesService {
       throw new NotFoundException('Article not found');
     }
 
-    if (article.authorId !== userId) {
+    if (article.author_id !== user_id) {
       throw new ForbiddenException('You can only enhance your own articles');
     }
 
@@ -797,12 +797,12 @@ export class ArticlesService {
 
     const coinCost = enhancementCosts[enhanceDto.enhancementType];
     
-    const wallet = await this.prisma.wallet.findUnique({
-      where: { userId },
-      select: { techCoin: true },
+    const wallet = await this.prisma.wallets.findUnique({
+      where: { user_id },
+      select: { tech_coin: true },
     });
 
-    if (!wallet || wallet.techCoin < coinCost) {
+    if (!wallet || wallet.tech_coin < coinCost) {
       throw new ConflictException('Insufficient TechCoin balance');
     }
 
@@ -816,7 +816,7 @@ export class ArticlesService {
         originalValue = article.excerpt || '';
         break;
       case 'SEO_TAGS':
-        originalValue = 'Current article tags';
+        originalValue = 'Current article.article_tag_relations';
         break;
       case 'FULL_ENHANCEMENT':
         originalValue = article.content;
@@ -846,23 +846,23 @@ export class ArticlesService {
 
     // Create enhancement record and deduct coins
     const [enhancement] = await this.prisma.$transaction([
-      this.prisma.articleAIEnhancement.create({
+      this.prisma.article_ai_enhancements.create({
         data: {
-          articleId,
-          userId,
-          enhancementType: enhanceDto.enhancementType,
-          originalValue,
-          enhancedValue,
-          coinSpent: coinCost,
+          article_id,
+          user_id,
+          enhancement_type: enhanceDto.enhancementType,
+          original_value: originalValue,
+          enhanced_value: enhancedValue,
+          coin_spent: coinCost,
         },
       }),
-      this.prisma.wallet.update({
-        where: { userId },
-        data: { techCoin: { decrement: coinCost } },
+      this.prisma.wallets.update({
+        where: { user_id },
+        data: { tech_coin: { decrement: coinCost } },
       }),
-      this.prisma.walletTransaction.create({
+      this.prisma.wallet_transactions.create({
         data: {
-          userId,
+          user_id,
           type: 'SPEND',
           amount: coinCost,
           description: `AI Enhancement: ${enhanceDto.enhancementType}`,
@@ -873,14 +873,14 @@ export class ArticlesService {
     return enhancement;
   }
 
-  async applyAIEnhancement(enhancementId: number, userId: number) {
-    const enhancement = await this.prisma.articleAIEnhancement.findUnique({
+  async applyAIEnhancement(enhancementId: number, user_id: number) {
+    const enhancement = await this.prisma.article_ai_enhancements.findUnique({
       where: { id: enhancementId },
       include: {
-        article: {
+        articles: {
           select: {
             id: true,
-            authorId: true,
+            author_id: true,
             title: true,
           },
         },
@@ -891,62 +891,62 @@ export class ArticlesService {
       throw new NotFoundException('Enhancement not found');
     }
 
-    if (enhancement.userId !== userId) {
+    if (enhancement.user_id !== user_id) {
       throw new ForbiddenException('You can only apply your own enhancements');
     }
 
-    if (enhancement.isApplied) {
+    if (enhancement.is_applied) {
       throw new ConflictException('Enhancement already applied');
     }
 
     // Apply the enhancement to the article
     const updateData: any = {};
-    switch (enhancement.enhancementType) {
+    switch (enhancement.enhancement_type) {
       case 'TITLE_OPTIMIZATION':
-        updateData.title = enhancement.enhancedValue;
-        updateData.slug = this.generateSlug(enhancement.enhancedValue);
+        updateData.title = enhancement.enhanced_value;
+        updateData.slug = this.generateSlug(enhancement.enhanced_value);
         break;
       case 'SUMMARY_GENERATION':
-        updateData.excerpt = enhancement.enhancedValue;
+        updateData.excerpt = enhancement.enhanced_value;
         break;
       case 'FULL_ENHANCEMENT':
-        updateData.content = enhancement.enhancedValue;
+        updateData.content = enhancement.enhanced_value;
         break;
       // SEO_TAGS would need separate handling for tags
     }
 
     await this.prisma.$transaction([
-      this.prisma.article.update({
-        where: { id: enhancement.articleId },
+      this.prisma.articles.update({
+        where: { id: enhancement.article_id },
         data: updateData,
       }),
-      this.prisma.articleAIEnhancement.update({
+      this.prisma.article_ai_enhancements.update({
         where: { id: enhancementId },
-        data: { isApplied: true },
+        data: { is_applied: true },
       }),
     ]);
 
     return { message: 'Enhancement applied successfully' };
   }
 
-  async getArticleEnhancements(articleId: number, userId: number) {
-    const article = await this.prisma.article.findUnique({
-      where: { id: articleId },
-      select: { authorId: true },
+  async getArticleEnhancements(article_id: number, user_id: number) {
+    const article = await this.prisma.articles.findUnique({
+      where: { id: article_id },
+      select: { author_id: true },
     });
 
     if (!article) {
       throw new NotFoundException('Article not found');
     }
 
-    if (article.authorId !== userId) {
+    if (article.author_id !== user_id) {
       throw new ForbiddenException('You can only view enhancements for your own articles');
     }
 
-    return this.prisma.articleAIEnhancement.findMany({
-      where: { articleId },
+    return this.prisma.article_ai_enhancements.findMany({
+      where: { article_id },
       orderBy: {
-        createdAt: 'desc',
+        created_at: 'desc',
       },
     });
   }

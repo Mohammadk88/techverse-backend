@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 export interface LocalizationFilter {
-  languageCode?: string;
-  countryCode?: string;
+  language_code?: string;
+  country_code?: string;
 }
 
 export interface ContentPrioritization {
@@ -25,55 +25,55 @@ export class ContentQueryService {
     baseWhere: any = {},
     localization?: LocalizationFilter,
   ): any {
-    if (!localization?.languageCode && !localization?.countryCode) {
+    if (!localization?.language_code && !localization?.country_code) {
       return baseWhere;
     }
 
-    const { languageCode, countryCode } = localization;
+    const { language_code, country_code } = localization;
     
     // Build prioritized OR conditions
     const localeConditions: any[] = [];
 
     // 1. Exact match (highest priority)
-    if (languageCode && countryCode) {
+    if (language_code && country_code) {
       localeConditions.push({
         AND: [
-          { languageCode },
-          { countryCode }
+          { language_code },
+          { country_code }
         ]
       });
     }
 
     // 2. Language match with any country
-    if (languageCode) {
+    if (language_code) {
       localeConditions.push({
         AND: [
-          { languageCode },
-          { countryCode: null }
+          { language_code },
+          { country_code: null }
         ]
       });
     }
 
     // 3. Country match with any language
-    if (countryCode) {
+    if (country_code) {
       localeConditions.push({
         AND: [
-          { languageCode: null },
-          { countryCode }
+          { language_code: null },
+          { country_code }
         ]
       });
     }
 
     // 4. Fallback to default language
     localeConditions.push({
-      languageCode: 'en'
+      language_code: 'en'
     });
 
     // 5. Fallback to no locale specified
     localeConditions.push({
       AND: [
-        { languageCode: null },
-        { countryCode: null }
+        { language_code: null },
+        { country_code: null }
       ]
     });
 
@@ -91,38 +91,38 @@ export class ContentQueryService {
     baseOrderBy: any[] = [],
     localization?: LocalizationFilter,
   ): any[] {
-    if (!localization?.languageCode && !localization?.countryCode) {
+    if (!localization?.language_code && !localization?.country_code) {
       return baseOrderBy;
     }
 
-    const { languageCode, countryCode } = localization;
+    const { language_code, country_code } = localization;
     const priorityOrderBy: any[] = [];
 
     // Create CASE statements for prioritization
-    if (languageCode && countryCode) {
+    if (language_code && country_code) {
       // Exact match gets highest priority (1)
       priorityOrderBy.push({
         _relevance: {
-          fields: ['languageCode', 'countryCode'],
-          search: `${languageCode} ${countryCode}`,
+          fields: ['language_code', 'country_code'],
+          search: `${language_code} ${country_code}`,
           sort: 'desc'
         }
       });
-    } else if (languageCode) {
+    } else if (language_code) {
       // Language match gets priority
       priorityOrderBy.push({
         _relevance: {
-          fields: ['languageCode'],
-          search: languageCode,
+          fields: ['language_code'],
+          search: language_code,
           sort: 'desc'
         }
       });
-    } else if (countryCode) {
+    } else if (country_code) {
       // Country match gets priority
       priorityOrderBy.push({
         _relevance: {
-          fields: ['countryCode'],
-          search: countryCode,
+          fields: ['country_code'],
+          search: country_code,
           sort: 'desc'
         }
       });
@@ -136,27 +136,27 @@ export class ContentQueryService {
    * This can be used in complex queries where Prisma's query builder is insufficient
    */
   createLocalePrioritySQL(
-    languageCode?: string,
-    countryCode?: string,
+    language_code?: string,
+    country_code?: string,
   ): string {
-    if (!languageCode && !countryCode) {
+    if (!language_code && !country_code) {
       return '0 as locale_priority';
     }
 
     let prioritySQL = 'CASE ';
 
-    if (languageCode && countryCode) {
-      prioritySQL += `WHEN language_code = '${languageCode}' AND country_code = '${countryCode}' THEN 100 `;
+    if (language_code && country_code) {
+      prioritySQL += `WHEN language_code = '${language_code}' AND country_code = '${country_code}' THEN 100 `;
     }
 
-    if (languageCode) {
-      prioritySQL += `WHEN language_code = '${languageCode}' AND country_code IS NULL THEN 80 `;
-      prioritySQL += `WHEN language_code = '${languageCode}' THEN 70 `;
+    if (language_code) {
+      prioritySQL += `WHEN language_code = '${language_code}' AND country_code IS NULL THEN 80 `;
+      prioritySQL += `WHEN language_code = '${language_code}' THEN 70 `;
     }
 
-    if (countryCode) {
-      prioritySQL += `WHEN country_code = '${countryCode}' AND language_code IS NULL THEN 60 `;
-      prioritySQL += `WHEN country_code = '${countryCode}' THEN 50 `;
+    if (country_code) {
+      prioritySQL += `WHEN country_code = '${country_code}' AND language_code IS NULL THEN 60 `;
+      prioritySQL += `WHEN country_code = '${country_code}' THEN 50 `;
     }
 
     prioritySQL += `WHEN language_code = 'en' THEN 30 `;
@@ -169,11 +169,11 @@ export class ContentQueryService {
   /**
    * Groups results by their locale priority for advanced filtering
    */
-  groupByLocalePriority<T extends { languageCode?: string; countryCode?: string }>(
+  groupByLocalePriority<T extends { language_code?: string; country_code?: string }>(
     results: T[],
     localization?: LocalizationFilter,
   ): ContentPrioritization {
-    const { languageCode, countryCode } = localization || {};
+    const { language_code, country_code } = localization || {};
 
     const exactMatch: T[] = [];
     const languageMatch: T[] = [];
@@ -182,18 +182,18 @@ export class ContentQueryService {
     results.forEach((item) => {
       // Exact match
       if (
-        languageCode && 
-        countryCode && 
-        item.languageCode === languageCode && 
-        item.countryCode === countryCode
+        language_code && 
+        country_code && 
+        item.language_code === language_code && 
+        item.country_code === country_code
       ) {
         exactMatch.push(item);
       }
       // Language match
       else if (
-        languageCode && 
-        item.languageCode === languageCode && 
-        (!countryCode || !item.countryCode)
+        language_code && 
+        item.language_code === language_code && 
+        (!country_code || !item.country_code)
       ) {
         languageMatch.push(item);
       }
@@ -214,7 +214,7 @@ export class ContentQueryService {
    * Determines the best content items based on locale priority
    * Returns up to the specified limit with the highest priority items first
    */
-  selectBestLocalizedContent<T extends { languageCode?: string; countryCode?: string }>(
+  selectBestLocalizedContent<T extends { language_code?: string; country_code?: string }>(
     results: T[],
     localization?: LocalizationFilter,
     limit?: number,
@@ -246,17 +246,17 @@ export class ContentQueryService {
    */
   getLocalizationFields() {
     return {
-      languageCode: true,
-      countryCode: true,
+      language_code: true,
+      country_code: true,
       language: {
         select: {
           code: true,
           name: true,
-          nativeName: true,
+          native_name: true,
           direction: true,
         },
       },
-      country: {
+      countries: {
         select: {
           code: true,
           name: true,

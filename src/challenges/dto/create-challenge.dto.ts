@@ -10,7 +10,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { ChallengeType } from '@prisma/client';
+import { challenge_types } from '@prisma/client';
 
 export class CreateChallengeDto {
   @ApiProperty({
@@ -60,26 +60,26 @@ export class CreateChallengeDto {
 
   @ApiProperty({
     description: 'How the winner will be determined',
-    enum: ChallengeType,
-    example: ChallengeType.VOTE,
+    enum: challenge_types,
+    example: challenge_types.VOTE,
     enumName: 'ChallengeType',
   })
-  @IsEnum(ChallengeType)
-  type: ChallengeType;
+  @IsEnum(challenge_types)
+  type: challenge_types;
 
   @ApiProperty({
     description: 'Challenge start date and time (ISO 8601)',
     example: '2025-07-20T00:00:00Z',
   })
   @IsDateString()
-  startDate: string;
+  start_date: string;
 
   @ApiProperty({
     description: 'Challenge end date and time (ISO 8601)',
     example: '2025-07-27T23:59:59Z',
   })
   @IsDateString()
-  endDate: string;
+  end_date: string;
 
   @ApiProperty({
     description: 'Additional requirements or rules',

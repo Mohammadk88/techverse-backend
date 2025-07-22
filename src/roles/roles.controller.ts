@@ -20,6 +20,7 @@ import { RolesService } from './roles.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles, UserRole } from '../common/decorators/roles.decorator';
+import { user_roles } from '@prisma/client';
 import {
   AssignGlobalRoleDto,
   AssignCafeRoleDto,
@@ -81,55 +82,55 @@ export class RolesController {
   @ApiResponse({ status: 201, description: 'Global role assigned successfully' })
   @Roles(UserRole.BARISTA)
   async assignGlobalRole(
-    @Param('id', ParseIntPipe) userId: number,
+    @Param('id', ParseIntPipe) user_id: number,
     @Body() assignRoleDto: AssignGlobalRoleDto,
   ) {
-    return this.rolesService.assignGlobalRole(userId, assignRoleDto.roleId);
+    return this.rolesService.assignGlobalRole(user_id, assignRoleDto.role_id);
   }
 
-  @Delete('user/:id/remove-global-role/:roleId')
+  @Delete('user/:id/remove-global-role/:role_id')
   @ApiOperation({ summary: 'Remove global role from user' })
   @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiParam({ name: 'roleId', description: 'Role ID' })
+  @ApiParam({ name: 'role_id', description: 'Role ID' })
   @ApiResponse({ status: 200, description: 'Global role removed successfully' })
   @Roles(UserRole.BARISTA)
   async removeGlobalRole(
-    @Param('id', ParseIntPipe) userId: number,
-    @Param('roleId', ParseIntPipe) roleId: number,
+    @Param('id', ParseIntPipe) user_id: number,
+    @Param('role_id', ParseIntPipe) role_id: number,
   ) {
-    return this.rolesService.removeGlobalRole(userId, roleId);
+    return this.rolesService.removeGlobalRole(user_id, role_id);
   }
 
-  @Post('cafe/:cafeId/assign-role')
+  @Post('cafe/:cafe_id/assign-role')
   @ApiOperation({ summary: 'Assign café role to user' })
-  @ApiParam({ name: 'cafeId', description: 'Café ID' })
+  @ApiParam({ name: 'cafe_id', description: 'Café ID' })
   @ApiBody({ type: AssignCafeRoleDto })
   @ApiResponse({ status: 201, description: 'Café role assigned successfully' })
   @Roles(UserRole.BARISTA)
   async assignCafeRole(
-    @Param('cafeId', ParseIntPipe) cafeId: number,
+    @Param('cafe_id', ParseIntPipe) cafe_id: number,
     @Body() assignRoleDto: AssignCafeRoleDto,
   ) {
     return this.rolesService.assignCafeRole(
-      assignRoleDto.userId,
-      cafeId,
-      assignRoleDto.roleId,
+      assignRoleDto.user_id,
+      cafe_id,
+      assignRoleDto.role_id,
     );
   }
 
-  @Delete('cafe/:cafeId/remove-role/:userId/:roleId')
+  @Delete('cafe/:cafe_id/remove-role/:user_id/:role_id')
   @ApiOperation({ summary: 'Remove café role from user' })
-  @ApiParam({ name: 'cafeId', description: 'Café ID' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  @ApiParam({ name: 'roleId', description: 'Role ID' })
+  @ApiParam({ name: 'cafe_id', description: 'Café ID' })
+  @ApiParam({ name: 'user_id', description: 'User ID' })
+  @ApiParam({ name: 'role_id', description: 'Role ID' })
   @ApiResponse({ status: 200, description: 'Café role removed successfully' })
   @Roles(UserRole.BARISTA)
   async removeCafeRole(
-    @Param('cafeId', ParseIntPipe) cafeId: number,
-    @Param('userId', ParseIntPipe) userId: number,
-    @Param('roleId', ParseIntPipe) roleId: number,
+    @Param('cafe_id', ParseIntPipe) cafe_id: number,
+    @Param('user_id', ParseIntPipe) user_id: number,
+    @Param('role_id', ParseIntPipe) role_id: number,
   ) {
-    return this.rolesService.removeCafeRole(userId, cafeId, roleId);
+    return this.rolesService.removeCafeRole(user_id, cafe_id, role_id);
   }
 
   @Get('user/:id/global')
@@ -137,8 +138,8 @@ export class RolesController {
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 200, description: 'User global roles' })
   @Roles(UserRole.BARISTA)
-  async getUserGlobalRoles(@Param('id', ParseIntPipe) userId: number) {
-    return this.rolesService.getUserGlobalRoles(userId);
+  async getUserGlobalRoles(@Param('id', ParseIntPipe) user_id: number) {
+    return this.rolesService.getUserGlobalRoles(user_id);
   }
 
   @Get('user/:id/cafe')
@@ -146,20 +147,20 @@ export class RolesController {
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 200, description: 'User café roles' })
   @Roles(UserRole.BARISTA)
-  async getAllUserCafeRoles(@Param('id', ParseIntPipe) userId: number) {
-    return this.rolesService.getUserCafeRoles(userId);
+  async getAllUserCafeRoles(@Param('id', ParseIntPipe) user_id: number) {
+    return this.rolesService.getUserCafeRoles(user_id);
   }
 
-  @Get('user/:id/cafe/:cafeId')
+  @Get('user/:id/cafe/:cafe_id')
   @ApiOperation({ summary: 'Get user café roles for specific café' })
   @ApiParam({ name: 'id', description: 'User ID' })
-  @ApiParam({ name: 'cafeId', description: 'Café ID' })
+  @ApiParam({ name: 'cafe_id', description: 'Café ID' })
   @ApiResponse({ status: 200, description: 'User café roles for specific café' })
   @Roles(UserRole.BARISTA)
   async getUserCafeRoles(
-    @Param('id', ParseIntPipe) userId: number,
-    @Param('cafeId', ParseIntPipe) cafeId: number,
+    @Param('id', ParseIntPipe) user_id: number,
+    @Param('cafe_id', ParseIntPipe) cafe_id: number,
   ) {
-    return this.rolesService.getUserCafeRoles(userId, cafeId);
+    return this.rolesService.getUserCafeRoles(user_id, cafe_id);
   }
 }

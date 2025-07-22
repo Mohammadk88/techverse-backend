@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
+import { task_status } from '@prisma/client';
 import {
   CreateProjectDto,
   UpdateProjectDto,
@@ -27,39 +28,28 @@ export class ProjectsService {
   ) {}
 
   // Project Management
-  async createProject(userId: number, createProjectDto: CreateProjectDto) {
-    return await this.prisma.project.create({
+  async createProject(user_id: number, createProjectDto: CreateProjectDto) {
+    const project = await this.prisma.projects.create({
       data: {
-        ...createProjectDto,
-        ownerId: userId,
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            username: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
-          },
-        },
-        _count: {
-          select: {
-            tasks: true,
-          },
-        },
+        owner_id: user_id,
+        title: createProjectDto.title,
+        description: createProjectDto.description,
+        is_public: createProjectDto.is_public,
+        updated_at: new Date(),
       },
     });
+
+    return project;
   }
 
   async getProjects(filterDto: ProjectFilterDto) {
-    const { page = 1, limit = 10, status, search, isPublic = true } = filterDto;
+    const { page = 1, limit = 10, status, search, is_public = true } = filterDto;
     const skip = (page - 1) * limit;
 
     const where: any = {};
 
-    if (isPublic !== undefined) {
-      where.isPublic = isPublic;
+    if (is_public !== undefined) {
+      where.is_public = is_public;
     }
 
     if (status) {
@@ -74,29 +64,29 @@ export class ProjectsService {
     }
 
     const [projects, total] = await Promise.all([
-      this.prisma.project.findMany({
+      this.prisma.projects.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         include: {
-          owner: {
+          users: {
             select: {
               id: true,
               username: true,
-              firstName: true,
-              lastName: true,
+              first_name: true,
+              last_name: true,
               avatar: true,
             },
           },
           _count: {
             select: {
-              tasks: true,
+              project_tasks: true,
             },
           },
         },
       }),
-      this.prisma.project.count({ where }),
+      this.prisma.projects.count({ where }),
     ]);
 
     return {
@@ -110,45 +100,45 @@ export class ProjectsService {
     };
   }
 
-  async getProjectById(id: number, userId?: number) {
-    const project = await this.prisma.project.findUnique({
+  async getProjectById(id: number, user_id?: number) {
+    const project = await this.prisma.projects.findUnique({
       where: { id },
       include: {
-        owner: {
+        users: {
           select: {
             id: true,
             username: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             avatar: true,
           },
         },
-        tasks: {
+        project_tasks: {
           include: {
             _count: {
               select: {
-                applications: true,
+                task_applications: true,
               },
             },
-            assignment: {
+            task_assignments: {
               include: {
-                user: {
+                users: {
                   select: {
                     id: true,
                     username: true,
-                    firstName: true,
-                    lastName: true,
+                    first_name: true,
+                    last_name: true,
                     avatar: true,
                   },
                 },
               },
             },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { created_at: 'desc' },
         },
         _count: {
           select: {
-            tasks: true,
+            project_tasks: true,
           },
         },
       },
@@ -159,7 +149,7 @@ export class ProjectsService {
     }
 
     // Check if user can view private project
-    if (!project.isPublic && project.ownerId !== userId) {
+    if (!project.is_public && project.owner_id !== user_id) {
       throw new ForbiddenException('This project is private');
     }
 
@@ -168,10 +158,10 @@ export class ProjectsService {
 
   async updateProject(
     id: number,
-    userId: number,
+    user_id: number,
     updateProjectDto: UpdateProjectDto,
   ) {
-    const project = await this.prisma.project.findUnique({
+    const project = await this.prisma.projects.findUnique({
       where: { id },
     });
 
@@ -179,40 +169,40 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    if (project.ownerId !== userId) {
+    if (project.owner_id !== user_id) {
       throw new ForbiddenException('Only project owner can update this project');
     }
 
-    return await this.prisma.project.update({
+    return await this.prisma.projects.update({
       where: { id },
       data: updateProjectDto,
       include: {
-        owner: {
+        users: {
           select: {
             id: true,
             username: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             avatar: true,
           },
         },
         _count: {
           select: {
-            tasks: true,
+            project_tasks: true,
           },
         },
       },
     });
   }
 
-  async deleteProject(id: number, userId: number) {
-    const project = await this.prisma.project.findUnique({
+  async deleteProject(id: number, user_id: number) {
+    const project = await this.prisma.projects.findUnique({
       where: { id },
       include: {
-        tasks: {
+        project_tasks: {
           include: {
-            assignment: true,
-            payment: true,
+            task_assignments: true,
+            task_payments: true,
           },
         },
       },
@@ -222,13 +212,13 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    if (project.ownerId !== userId) {
+    if (project.owner_id !== user_id) {
       throw new ForbiddenException('Only project owner can delete this project');
     }
 
     // Check if any tasks are assigned or paid
-    const hasActiveWork = project.tasks.some(
-      (task) => task.assignment || task.payment?.isPaid,
+    const hasActiveWork = project.project_tasks.some(
+      (task) => task.task_assignments || task.task_payments?.is_paid,
     );
 
     if (hasActiveWork) {
@@ -237,52 +227,52 @@ export class ProjectsService {
       );
     }
 
-    return await this.prisma.project.delete({
+    return await this.prisma.projects.delete({
       where: { id },
     });
   }
 
   // Task Management
   async createTask(
-    projectId: number,
-    userId: number,
+    project_id: number,
+    user_id: number,
     createTaskDto: CreateTaskDto,
   ) {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
+    const project = await this.prisma.projects.findUnique({
+      where: { id: project_id },
     });
 
     if (!project) {
       throw new NotFoundException('Project not found');
     }
 
-    if (project.ownerId !== userId) {
+    if (project.owner_id !== user_id) {
       throw new ForbiddenException('Only project owner can add tasks');
     }
 
-    return await this.prisma.projectTask.create({
+    return await this.prisma.project_tasks.create({
       data: {
         ...createTaskDto,
-        projectId,
+        project_id,
+        updated_at: new Date(),
       },
-      include: {
-        project: {
+      include: { projects: {
           select: {
             id: true,
             title: true,
-            owner: {
+            users: {
               select: {
                 id: true,
                 username: true,
-                firstName: true,
-                lastName: true,
+                first_name: true,
+                last_name: true,
               },
             },
           },
         },
         _count: {
           select: {
-            applications: true,
+            task_applications: true,
           },
         },
       },
@@ -302,7 +292,7 @@ export class ProjectsService {
 
     const where: any = {
       project: {
-        isPublic: true, // Only show tasks from public projects
+        is_public: true, // Only show tasks from public projects
       },
     };
 
@@ -328,22 +318,21 @@ export class ProjectsService {
     }
 
     const [tasks, total] = await Promise.all([
-      this.prisma.projectTask.findMany({
+      this.prisma.project_tasks.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          project: {
+        orderBy: { created_at: 'desc' },
+        include: { projects: {
             select: {
               id: true,
               title: true,
-              owner: {
+              users: {
                 select: {
                   id: true,
                   username: true,
-                  firstName: true,
-                  lastName: true,
+                  first_name: true,
+                  last_name: true,
                   avatar: true,
                 },
               },
@@ -351,17 +340,17 @@ export class ProjectsService {
           },
           _count: {
             select: {
-              applications: true,
+              task_applications: true,
             },
           },
-          assignment: {
+          task_assignments: {
             include: {
-              user: {
+              users: {
                 select: {
                   id: true,
                   username: true,
-                  firstName: true,
-                  lastName: true,
+                  first_name: true,
+                  last_name: true,
                   avatar: true,
                 },
               },
@@ -369,7 +358,7 @@ export class ProjectsService {
           },
         },
       }),
-      this.prisma.projectTask.count({ where }),
+      this.prisma.project_tasks.count({ where }),
     ]);
 
     return {
@@ -384,51 +373,50 @@ export class ProjectsService {
   }
 
   async getTaskById(id: number) {
-    const task = await this.prisma.projectTask.findUnique({
+    const task = await this.prisma.project_tasks.findUnique({
       where: { id },
-      include: {
-        project: {
+      include: { projects: {
           include: {
-            owner: {
+            users: {
               select: {
                 id: true,
                 username: true,
-                firstName: true,
-                lastName: true,
+                first_name: true,
+                last_name: true,
                 avatar: true,
               },
             },
           },
         },
-        applications: {
+        task_applications: {
           include: {
-            applicant: {
+            users: {
               select: {
                 id: true,
                 username: true,
-                firstName: true,
-                lastName: true,
+                first_name: true,
+                last_name: true,
                 avatar: true,
                 xp: true,
               },
             },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { created_at: 'desc' },
         },
-        assignment: {
+        task_assignments: {
           include: {
-            user: {
+            users: {
               select: {
                 id: true,
                 username: true,
-                firstName: true,
-                lastName: true,
+                first_name: true,
+                last_name: true,
                 avatar: true,
               },
             },
           },
         },
-        payment: true,
+        task_payments: true,
       },
     });
 
@@ -437,19 +425,18 @@ export class ProjectsService {
     }
 
     // Check if task's project is public or if user is owner
-    if (!task.project.isPublic) {
+    if (!task.projects.is_public) {
       throw new ForbiddenException('This task belongs to a private project');
     }
 
     return task;
   }
 
-  async updateTask(id: number, userId: number, updateTaskDto: UpdateTaskDto) {
-    const task = await this.prisma.projectTask.findUnique({
+  async updateTask(id: number, user_id: number, updateTaskDto: UpdateTaskDto) {
+    const task = await this.prisma.project_tasks.findUnique({
       where: { id },
-      include: {
-        project: true,
-        assignment: true,
+      include: { projects: true,
+        task_assignments: true,
       },
     });
 
@@ -457,20 +444,19 @@ export class ProjectsService {
       throw new NotFoundException('Task not found');
     }
 
-    if (task.project.ownerId !== userId) {
+    if (task.projects.owner_id !== user_id) {
       throw new ForbiddenException('Only project owner can update this task');
     }
 
     // Don't allow status changes if task is assigned
-    if (task.assignment && updateTaskDto.status === TaskStatus.PENDING) {
+    if (task.task_assignments && updateTaskDto.status === task_status.PENDING) {
       throw new BadRequestException('Cannot change status of assigned task');
     }
 
-    return await this.prisma.projectTask.update({
+    return await this.prisma.project_tasks.update({
       where: { id },
       data: updateTaskDto,
-      include: {
-        project: {
+      include: { projects: {
           select: {
             id: true,
             title: true,
@@ -478,20 +464,19 @@ export class ProjectsService {
         },
         _count: {
           select: {
-            applications: true,
+            task_applications: true,
           },
         },
       },
     });
   }
 
-  async deleteTask(id: number, userId: number) {
-    const task = await this.prisma.projectTask.findUnique({
+  async deleteTask(id: number, user_id: number) {
+    const task = await this.prisma.project_tasks.findUnique({
       where: { id },
-      include: {
-        project: true,
-        assignment: true,
-        payment: true,
+      include: { projects: true,
+        task_assignments: true,
+        task_payments: true,
       },
     });
 
@@ -499,26 +484,25 @@ export class ProjectsService {
       throw new NotFoundException('Task not found');
     }
 
-    if (task.project.ownerId !== userId) {
+    if (task.projects.owner_id !== user_id) {
       throw new ForbiddenException('Only project owner can delete this task');
     }
 
-    if (task.assignment || task.payment?.isPaid) {
+    if (task.task_assignments || task.task_payments?.is_paid) {
       throw new BadRequestException('Cannot delete assigned or paid task');
     }
 
-    return await this.prisma.projectTask.delete({
+    return await this.prisma.project_tasks.delete({
       where: { id },
     });
   }
 
   // Task Application Management
-  async applyToTask(taskId: number, userId: number, applyDto: ApplyToTaskDto) {
-    const task = await this.prisma.projectTask.findUnique({
-      where: { id: taskId },
-      include: {
-        project: true,
-        assignment: true,
+  async applyToTask(task_id: number, user_id: number, applyDto: ApplyToTaskDto) {
+    const task = await this.prisma.project_tasks.findUnique({
+      where: { id: task_id },
+      include: { projects: true,
+        task_assignments: true,
       },
     });
 
@@ -526,28 +510,28 @@ export class ProjectsService {
       throw new NotFoundException('Task not found');
     }
 
-    if (task.project.ownerId === userId) {
+    if (task.projects.owner_id === user_id) {
       throw new BadRequestException('Cannot apply to your own task');
     }
 
-    if (!task.project.isPublic) {
+    if (!task.projects.is_public) {
       throw new ForbiddenException('Cannot apply to private project task');
     }
 
-    if (task.status !== TaskStatus.PENDING) {
+    if (task.status !== task_status.PENDING) {
       throw new BadRequestException('Task is not accepting applications');
     }
 
-    if (task.assignment) {
+    if (task.task_assignments) {
       throw new ConflictException('Task is already assigned');
     }
 
     // Check if user already applied
-    const existingApplication = await this.prisma.taskApplication.findUnique({
+    const existingApplication = await this.prisma.task_applications.findUnique({
       where: {
-        taskId_applicantId: {
-          taskId,
-          applicantId: userId,
+        task_id_applicant_id: {
+          task_id,
+          applicant_id: user_id,
         },
       },
     });
@@ -556,28 +540,28 @@ export class ProjectsService {
       throw new ConflictException('You have already applied to this task');
     }
 
-    return await this.prisma.taskApplication.create({
+    return await this.prisma.task_applications.create({
       data: {
-        taskId,
-        applicantId: userId,
+        task_id,
+        applicant_id: user_id,
         message: applyDto.message,
       },
       include: {
-        applicant: {
+        users: {
           select: {
             id: true,
             username: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             avatar: true,
             xp: true,
           },
         },
-        task: {
+        project_tasks: {
           select: {
             id: true,
             title: true,
-            project: {
+            projects: {
               select: {
                 id: true,
                 title: true,
@@ -589,14 +573,13 @@ export class ProjectsService {
     });
   }
 
-  async assignTask(taskId: number, applicantId: number, ownerId: number) {
-    const task = await this.prisma.projectTask.findUnique({
-      where: { id: taskId },
-      include: {
-        project: true,
-        assignment: true,
-        applications: {
-          where: { applicantId },
+  async assignTask(task_id: number, applicant_id: number, owner_id: number) {
+    const task = await this.prisma.project_tasks.findUnique({
+      where: { id: task_id },
+      include: { projects: true,
+        task_assignments: true,
+        task_applications: {
+          where: { applicant_id },
         },
       },
     });
@@ -605,21 +588,21 @@ export class ProjectsService {
       throw new NotFoundException('Task not found');
     }
 
-    if (task.project.ownerId !== ownerId) {
+    if (task.projects.owner_id !== owner_id) {
       throw new ForbiddenException('Only project owner can assign tasks');
     }
 
-    if (task.assignment) {
+    if (task.task_assignments) {
       throw new ConflictException('Task is already assigned');
     }
 
-    if (task.applications.length === 0) {
+    if (task.task_applications.length === 0) {
       throw new BadRequestException('User has not applied to this task');
     }
 
     // Check if project owner has enough TechCoin using WalletService
     const hasEnough = await this.walletService.hasEnoughTechCoin(
-      ownerId,
+      owner_id,
       task.price,
     );
 
@@ -630,7 +613,7 @@ export class ProjectsService {
     }
 
     // Deduct TechCoin from owner's wallet (escrow)
-    await this.walletService.spendTechCoin(ownerId, {
+    await this.walletService.spendTechCoin(owner_id, {
       amount: task.price,
       description: `Escrowed for task: ${task.title}`,
     });
@@ -638,18 +621,18 @@ export class ProjectsService {
     // Create assignment and payment record
     return await this.prisma.$transaction(async (prisma) => {
       // Create assignment
-      const assignment = await prisma.taskAssignment.create({
+      const assignment = await prisma.task_assignments.create({
         data: {
-          taskId,
-          userId: applicantId,
+          task_id,
+          user_id: applicant_id,
         },
         include: {
-          user: {
+          users: {
             select: {
               id: true,
               username: true,
-              firstName: true,
-              lastName: true,
+              first_name: true,
+              last_name: true,
               avatar: true,
             },
           },
@@ -657,31 +640,30 @@ export class ProjectsService {
       });
 
       // Create payment record
-      await prisma.taskPayment.create({
+      await prisma.task_payments.create({
         data: {
-          taskId,
-          userId: applicantId,
+          task_id,
+          user_id: applicant_id,
           amount: task.price,
         },
       });
 
       // Update task status
-      await prisma.projectTask.update({
-        where: { id: taskId },
-        data: { status: TaskStatus.ASSIGNED },
+      await prisma.project_tasks.update({
+        where: { id: task_id },
+        data: { status: task_status.ASSIGNED },
       });
 
       return assignment;
     });
   }
 
-  async completeTask(taskId: number, userId: number) {
-    const task = await this.prisma.projectTask.findUnique({
-      where: { id: taskId },
-      include: {
-        project: true,
-        assignment: true,
-        payment: true,
+  async completeTask(task_id: number, user_id: number) {
+    const task = await this.prisma.project_tasks.findUnique({
+      where: { id: task_id },
+      include: { projects: true,
+        task_assignments: true,
+        task_payments: true,
       },
     });
 
@@ -689,52 +671,52 @@ export class ProjectsService {
       throw new NotFoundException('Task not found');
     }
 
-    if (task.project.ownerId !== userId) {
+    if (task.projects.owner_id !== user_id) {
       throw new ForbiddenException('Only project owner can complete tasks');
     }
 
-    if (!task.assignment) {
+    if (!task.task_assignments) {
       throw new BadRequestException('Task is not assigned');
     }
 
-    if (task.status === TaskStatus.DONE) {
+    if (task.status === task_status.DONE) {
       throw new BadRequestException('Task is already completed');
     }
 
-    if (task.payment?.isPaid) {
+    if (task.task_payments?.is_paid) {
       throw new BadRequestException('Task payment has already been processed');
     }
 
     // Complete task and process payment using WalletService
     return await this.prisma.$transaction(async (prisma) => {
       // Update task status
-      await prisma.projectTask.update({
-        where: { id: taskId },
-        data: { status: TaskStatus.DONE },
+      await prisma.project_tasks.update({
+        where: { id: task_id },
+        data: { status: task_status.DONE },
       });
 
       // Process payment
-      await prisma.taskPayment.update({
-        where: { taskId },
+      await prisma.task_payments.update({
+        where: { task_id },
         data: {
-          isPaid: true,
-          paidAt: new Date(),
+          is_paid: true,
+          paid_at: new Date(),
         },
       });
 
       // Award TechCoin to task assignee using WalletService
-      if (!task.assignment) {
+      if (!task.task_assignments) {
         throw new ForbiddenException('Task must be assigned before payment');
       }
 
-      await this.walletService.earnTechCoin(task.assignment.userId, {
+      await this.walletService.earnTechCoin(task.task_assignments.user_id, {
         amount: task.price,
         description: `Completed task: ${task.title}`,
       });
 
       // Award XP using WalletService
       await this.walletService.addXP(
-        task.assignment.userId,
+        task.task_assignments.user_id,
         10,
         `Completed task: ${task.title}`,
       );
@@ -744,24 +726,24 @@ export class ProjectsService {
   }
 
   // Get user's projects
-  async getUserProjects(userId: number, page = 1, limit = 10) {
+  async getUserProjects(user_id: number, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
     const [projects, total] = await Promise.all([
-      this.prisma.project.findMany({
-        where: { ownerId: userId },
+      this.prisma.projects.findMany({
+        where: { owner_id: user_id },
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         include: {
           _count: {
             select: {
-              tasks: true,
+              project_tasks: true,
             },
           },
         },
       }),
-      this.prisma.project.count({ where: { ownerId: userId } }),
+      this.prisma.projects.count({ where: { owner_id: user_id } }),
     ]);
 
     return {
@@ -775,43 +757,41 @@ export class ProjectsService {
     };
   }
 
-  // Get user's task applications
-  async getUserApplications(userId: number, page = 1, limit = 10) {
+  // Get user's task.task_applications
+  async getUserApplications(user_id: number, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
     const [applications, total] = await Promise.all([
-      this.prisma.taskApplication.findMany({
-        where: { applicantId: userId },
+      this.prisma.task_applications.findMany({
+        where: { applicant_id: user_id },
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          task: {
-            include: {
-              project: {
+        orderBy: { created_at: 'desc' },
+        include: { project_tasks: {
+            include: { projects: {
                 select: {
                   id: true,
                   title: true,
-                  owner: {
+                  users: {
                     select: {
                       id: true,
                       username: true,
-                      firstName: true,
-                      lastName: true,
+                      first_name: true,
+                      last_name: true,
                     },
                   },
                 },
               },
-              assignment: {
+              task_assignments: {
                 select: {
-                  userId: true,
+                  user_id: true,
                 },
               },
             },
           },
         },
       }),
-      this.prisma.taskApplication.count({ where: { applicantId: userId } }),
+      this.prisma.task_applications.count({ where: { applicant_id: user_id } }),
     ]);
 
     return {
@@ -826,38 +806,36 @@ export class ProjectsService {
   }
 
   // Get user's assigned tasks
-  async getUserAssignedTasks(userId: number, page = 1, limit = 10) {
+  async getUserAssignedTasks(user_id: number, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
     const [assignments, total] = await Promise.all([
-      this.prisma.taskAssignment.findMany({
-        where: { userId },
+      this.prisma.task_assignments.findMany({
+        where: { user_id },
         skip,
         take: limit,
-        orderBy: { assignedAt: 'desc' },
-        include: {
-          task: {
-            include: {
-              project: {
+        orderBy: { assigned_at: 'desc' },
+        include: { project_tasks: {
+            include: { projects: {
                 select: {
                   id: true,
                   title: true,
-                  owner: {
+                  users: {
                     select: {
                       id: true,
                       username: true,
-                      firstName: true,
-                      lastName: true,
+                      first_name: true,
+                      last_name: true,
                     },
                   },
                 },
               },
-              payment: true,
+              task_payments: true,
             },
           },
         },
       }),
-      this.prisma.taskAssignment.count({ where: { userId } }),
+      this.prisma.task_assignments.count({ where: { user_id } }),
     ]);
 
     return {

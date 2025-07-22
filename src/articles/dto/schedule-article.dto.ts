@@ -7,7 +7,7 @@ export class ScheduleArticleDto {
     example: '2024-07-20T12:00:00Z',
   })
   @IsDateString()
-  publishAt: string;
+  publish_at: string;
 
   @ApiProperty({
     description: 'هل تريد تحسين المقال بالذكاء الاصطناعي قبل النشر؟',
@@ -24,10 +24,10 @@ export class CreateScheduledPostResponseDto {
   id: number;
 
   @ApiProperty({ description: 'معرف المقال' })
-  articleId: number;
+  article_id: number;
 
   @ApiProperty({ description: 'تاريخ النشر المجدول' })
-  publishAt: string;
+  publish_at: string;
 
   @ApiProperty({ description: 'هل محسن بالذكاء الاصطناعي' })
   aiEnhanced: boolean;
@@ -36,5 +36,5 @@ export class CreateScheduledPostResponseDto {
   status: string;
 
   @ApiProperty({ description: 'تاريخ الإنشاء' })
-  createdAt: string;
+  created_at: string;
 }

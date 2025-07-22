@@ -1,5 +1,3 @@
-// TechVerse Café Platform - Database Schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,744 +7,555 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Language and Country Tables
-model Language {
-  id          Int       @id @default(autoincrement())
-  name        String
-  nativeName  String    @map("native_name")
-  code        String    @unique
-  direction   String?   @default("ltr") // 'ltr' or 'rtl'
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  countries   Country[]
-  users       User[]
-  translations Translation[]
-  articles    Article[]
-  cafes       Cafe[]
-  
-  @@map("languages")
+model ai_keys {
+  id           Int          @id @default(autoincrement())
+  user_id      Int?
+  provider_id  Int
+  secret_key   String
+  is_active    Boolean      @default(true)
+  created_at   DateTime     @default(now())
+  updated_at   DateTime
+  key_name     String?
+  ai_providers ai_providers @relation(fields: [provider_id], references: [id], onDelete: Cascade)
+  users        users?       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, provider_id])
 }
 
-model Country {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  code        String   @unique // e.g., TR, SA, US
-  languageId  Int      @map("language_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  language    Language @relation(fields: [languageId], references: [id])
-  cities      City[]
-  users       User[]
-  articles    Article[]
-  cafes       Cafe[]
-  
-  @@map("countries")
+model ai_providers {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  label      String
+  is_active  Boolean   @default(true)
+  is_default Boolean   @default(false)
+  created_at DateTime  @default(now())
+  updated_at DateTime
+  ai_keys    ai_keys[]
 }
 
-model City {
-  id          Int      @id @default(autoincrement())
-  name        String
-  countryId   Int      @map("country_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  country     Country  @relation(fields: [countryId], references: [id])
-  users       User[]
-  
-  @@unique([name, countryId], name: "name_countryId")
-  @@map("cities")
+model article_ai_enhancements {
+  id               Int                  @id @default(autoincrement())
+  article_id       Int
+  user_id          Int
+  enhancement_type ai_enhancement_types
+  original_value   String
+  enhanced_value   String
+  coin_spent       Int
+  is_applied       Boolean              @default(false)
+  created_at       DateTime             @default(now())
+  articles         articles             @relation(fields: [article_id], references: [id], onDelete: Cascade)
+  users            users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([article_id, enhancement_type])
 }
 
-// User System
-enum UserRole {
-  GUEST
-  MEMBER
-  THINKER
-  JOURNALIST
-  BARISTA
-  
-  @@map("user_roles")
-}
-
-// Global Roles System
-model GlobalRole {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
-  description String?
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-  
-  // Relations
-  userRoles   UserGlobalRole[]
-  
-  @@map("global_roles")
-}
-
-model UserGlobalRole {
-  id        Int        @id @default(autoincrement())
-  userId    Int        @map("user_id")
-  roleId    Int        @map("role_id")
-  createdAt DateTime   @default(now()) @map("created_at")
-  
-  // Relations
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      GlobalRole @relation(fields: [roleId], references: [id])
-  
-  @@unique([userId, roleId])
-  @@map("user_global_roles")
-}
-
-// Café Roles System
-model CafeRole {
-  id          Int            @id @default(autoincrement())
-  name        String         @unique
-  description String?
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  
-  // Relations
-  userCafeRoles UserCafeRole[]
-  
-  @@map("cafe_roles")
-}
-
-model UserCafeRole {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  cafeId    Int      @map("cafe_id")
-  roleId    Int      @map("role_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  
-  // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cafe      Cafe     @relation(fields: [cafeId], references: [id], onDelete: Cascade)
-  role      CafeRole @relation(fields: [roleId], references: [id])
-  
-  @@unique([userId, cafeId, roleId])
-  @@map("user_cafe_roles")
-}
-
-model User {
-  id          Int       @id @default(autoincrement())
-  email       String    @unique
-  password    String
-  firstName   String?   @map("first_name")
-  lastName    String?   @map("last_name")
-  username    String?   @unique
-  avatar      String?
-  bio         String?
-  role        UserRole  @default(GUEST)
-  xp          Int       @default(0)
-  techCoin    Int       @default(100) @map("tech_coin") // Starting balance
-  languageId  Int?      @map("language_id")
-  countryId   Int?      @map("country_id")
-  cityId      Int?      @map("city_id")
-  isActive    Boolean   @default(true) @map("is_active")
-  emailVerified Boolean @default(false) @map("email_verified")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  language    Language? @relation(fields: [languageId], references: [id])
-  country     Country?  @relation(fields: [countryId], references: [id])
-  city        City?     @relation(fields: [cityId], references: [id])
-  
-  // Content Relations
-  articles        Article[]
-  bookmarks       Bookmark[]
-  
-  // Café Relations
-  ownedCafes      Cafe[]           @relation("CafeOwner")
-  cafeMembers     CafeMember[]
-  cafePosts       CafePost[]
-  
-  // Role Relations
-  globalRoles     UserGlobalRole[]
-  cafeRoles       UserCafeRole[]
-  
-  // AI Relations
-  aiKeys          AIKey[]
-  
-  // Wallet Relations
-  wallet          Wallet?
-  walletTransactions WalletTransaction[]
-  
-  // Challenge Relations
-  createdChallenges Challenge[]      @relation("ChallengeCreator")
-  challengeParticipants ChallengeParticipant[]
-  
-  // Mini Projects Relations
-  ownedProjects   Project[]        @relation("ProjectOwner")
-  taskApplications TaskApplication[]
-  taskAssignments TaskAssignment[]
-  taskPayments    TaskPayment[]
-  
-  // Reactions Relations
-  reactions       Reaction[]
-  
-  // Article Enhancement Relations
-  scheduledPosts     ScheduledPost[]
-  articleBoosts      ArticleBoost[]
-  articleAIEnhancements ArticleAIEnhancement[]
-  
-  // Follow Relations
-  followers          Follow[]         @relation("UserFollowing") // Users following this user
-  following          Follow[]         @relation("UserFollowers") // Users this user is following
-  
-  @@map("users")
-}
-
-// Articles System
-model ArticleCategory {
-  id          Int       @id @default(autoincrement())
-  name        String
-  slug        String    @unique
-  description String?
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  articles    Article[]
-  
-  @@map("article_categories")
-}
-
-model ArticleTag {
-  id          Int       @id @default(autoincrement())
-  name        String
-  slug        String    @unique
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  articles    ArticleTagRelation[]
-  
-  @@map("article_tags")
-}
-
-model Article {
-  id          Int       @id @default(autoincrement())
-  title       String
-  slug        String    @unique
-  content     String
-  excerpt     String?
-  featuredImage String? @map("featured_image")
-  categoryId  Int       @map("category_id")
-  authorId    Int       @map("author_id")
-  languageCode String?  @default("en") @map("language_code") // e.g., 'ar', 'en', 'fr'
-  countryCode String?   @map("country_code")  // e.g., 'SY', 'TR', 'SA'
-  isPublished Boolean   @default(false) @map("is_published")
-  publishedAt DateTime? @map("published_at")
-  scheduledFor DateTime? @map("scheduled_for")
-  isAI        Boolean   @default(false) @map("is_ai")
-  aiPrompt    String?   @map("ai_prompt")
-  featured    Boolean   @default(false)
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  category    ArticleCategory @relation(fields: [categoryId], references: [id])
-  author      User           @relation(fields: [authorId], references: [id])
-  language    Language?      @relation(fields: [languageCode], references: [code])
-  country     Country?       @relation(fields: [countryCode], references: [code])
-  tags        ArticleTagRelation[]
-  bookmarks   Bookmark[]
-  reactions   Reaction[]
-  scheduledPosts     ScheduledPost[]
-  boosts             ArticleBoost[]
-  aiEnhancements     ArticleAIEnhancement[]
-  
-  @@index([languageCode])
-  @@index([countryCode])
-  @@index([languageCode, countryCode])
-  @@index([featured])
-  @@index([isPublished])
-  @@index([publishedAt])
-  @@map("articles")
-}
-
-model ArticleTagRelation {
-  id        Int         @id @default(autoincrement())
-  articleId Int         @map("article_id")
-  tagId     Int         @map("tag_id")
-  createdAt DateTime    @default(now()) @map("created_at")
-  
-  // Relations
-  article   Article     @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  tag       ArticleTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  
-  @@unique([articleId, tagId])
-  @@map("article_tag_relations")
-}
-
-// Community Posts System - REMOVED (Future Development)
-// Note: Posts system will be implemented in future versions
-
-// Bookmarks System (Articles Only)
-model Bookmark {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  articleId Int      @map("article_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  
-  // Relations
-  user      User     @relation(fields: [userId], references: [id])
-  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, articleId])
-  @@map("bookmarks")
-}
-
-// Cafés (Discussion Groups) System
-
-// Cafés (Discussion Groups) System
-model Cafe {
-  id          Int       @id @default(autoincrement())
-  name        String
-  slug        String    @unique
-  description String?
-  coverImage  String?   @map("cover_image")
-  ownerId     Int       @map("owner_id")
-  isPrivate   Boolean   @default(false) @map("is_private")
-  languageCode String?  @default("en") @map("language_code") // ISO 639-1 language code
-  countryCode String?   @map("country_code") // ISO 3166-1 alpha-2 country code
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  owner       User           @relation("CafeOwner", fields: [ownerId], references: [id])
-  language    Language?      @relation(fields: [languageCode], references: [code])
-  country     Country?       @relation(fields: [countryCode], references: [code])
-  members     CafeMember[]
-  posts       CafePost[]
-  userRoles   UserCafeRole[]
-  
-  @@index([languageCode])
-  @@index([countryCode])
-  @@index([languageCode, countryCode])
-  @@map("cafes")
-}
-
-model CafeMember {
-  id        Int      @id @default(autoincrement())
-  cafeId    Int      @map("cafe_id")
-  userId    Int      @map("user_id")
-  joinedAt  DateTime @default(now()) @map("joined_at")
-  
-  // Relations
-  cafe      Cafe     @relation(fields: [cafeId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
-  
-  @@unique([cafeId, userId])
-  @@map("cafe_members")
-}
-
-model CafePost {
-  id        Int      @id @default(autoincrement())
-  content   String
-  cafeId    Int      @map("cafe_id")
-  authorId  Int      @map("author_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  cafe      Cafe     @relation(fields: [cafeId], references: [id], onDelete: Cascade)
-  author    User     @relation(fields: [authorId], references: [id])
-  reactions Reaction[]
-  
-  @@map("cafe_posts")
-}
-
-// Mini Projects + Tasks System
-enum ProjectStatus {
-  OPEN
-  IN_PROGRESS
-  COMPLETED
-  
-  @@map("project_status")
-}
-
-model Project {
-  id          Int           @id @default(autoincrement())
-  ownerId     Int           @map("owner_id")
-  title       String
-  description String
-  isPublic    Boolean       @default(true) @map("is_public")
-  status      ProjectStatus @default(OPEN)
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  
-  // Relations
-  owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id])
-  tasks       ProjectTask[]
-  reactions   Reaction[]
-  
-  @@map("projects")
-}
-
-enum TaskStatus {
-  PENDING
-  ASSIGNED
-  DONE
-  
-  @@map("task_status")
-}
-
-model ProjectTask {
-  id          Int           @id @default(autoincrement())
-  projectId   Int           @map("project_id")
-  title       String
-  description String
-  price       Int           // in TechCoin
-  status      TaskStatus    @default(PENDING)
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  
-  // Relations
-  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  applications TaskApplication[]
-  assignment  TaskAssignment?
-  payment     TaskPayment?
-  
-  @@map("project_tasks")
-}
-
-model TaskApplication {
-  id          Int         @id @default(autoincrement())
-  taskId      Int         @map("task_id")
-  applicantId Int         @map("applicant_id")
-  message     String
-  createdAt   DateTime    @default(now()) @map("created_at")
-  
-  // Relations
-  task        ProjectTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  applicant   User        @relation(fields: [applicantId], references: [id])
-  
-  @@unique([taskId, applicantId])
-  @@map("task_applications")
-}
-
-model TaskAssignment {
-  id          Int         @id @default(autoincrement())
-  taskId      Int         @unique @map("task_id")
-  userId      Int         @map("user_id")
-  assignedAt  DateTime    @default(now()) @map("assigned_at")
-  
-  // Relations
-  task        ProjectTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user        User        @relation(fields: [userId], references: [id])
-  
-  @@map("task_assignments")
-}
-
-model TaskPayment {
-  id          Int         @id @default(autoincrement())
-  taskId      Int         @unique @map("task_id")
-  userId      Int         @map("user_id") // recipient of payment
-  amount      Int         // TechCoin amount
-  isPaid      Boolean     @default(false) @map("is_paid")
-  paidAt      DateTime?   @map("paid_at")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  
-  // Relations
-  task        ProjectTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user        User        @relation(fields: [userId], references: [id])
-  
-  @@map("task_payments")
-}
-
-// Translations System
-model Translation {
-  id        Int      @id @default(autoincrement())
-  key       String
-  langCode  String   @map("lang_code")
-  value     String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  language  Language @relation(fields: [langCode], references: [code])
-  
-  @@unique([key, langCode])
-  @@map("translations")
-}
-
-// AI Provider System
-model AIProvider {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique     // openai, gemini, claude
-  label     String                // Display name
-  isActive  Boolean   @default(true) @map("is_active")
-  isDefault Boolean   @default(false) @map("is_default")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  
-  // Relations
-  keys      AIKey[]
-  
-  @@map("ai_providers")
-}
-
-model AIKey {
-  id         Int        @id @default(autoincrement())
-  userId     Int?       @map("user_id")     // null = system-level key
-  providerId Int        @map("provider_id")
-  keyName    String?    @map("key_name")    // user-friendly name for the key
-  secretKey  String     @map("secret_key")  // store as encrypted
-  isActive   Boolean    @default(true) @map("is_active")
-  createdAt  DateTime   @default(now()) @map("created_at")
-  updatedAt  DateTime   @updatedAt @map("updated_at")
-  
-  // Relations
-  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider   AIProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, providerId]) // One key per user per provider
-  @@map("ai_keys")
-}
-
-// Digital Wallet System
-model Wallet {
+model article_boosts {
   id         Int      @id @default(autoincrement())
-  userId     Int      @unique @map("user_id")
-  techCoin   Int      @default(100) @map("tech_coin")
-  xp         Int      @default(0)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("wallets")
+  article_id Int
+  user_id    Int
+  coin_spent Int
+  start_date DateTime
+  end_date   DateTime
+  created_at DateTime @default(now())
+  articles   articles @relation(fields: [article_id], references: [id], onDelete: Cascade)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([article_id])
+  @@index([start_date, end_date])
 }
 
-enum TransactionType {
-  BUY
-  EARN
-  SPEND
-  
-  @@map("transaction_types")
+model article_categories {
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String     @unique
+  description String?
+  created_at  DateTime   @default(now())
+  updated_at  DateTime
+  articles    articles[]
 }
 
-model WalletTransaction {
-  id          Int             @id @default(autoincrement())
-  userId      Int             @map("user_id")
-  type        TransactionType
+model article_tag_relations {
+  id           Int          @id @default(autoincrement())
+  article_id   Int
+  tag_id       Int
+  created_at   DateTime     @default(now())
+  articles     articles     @relation(fields: [article_id], references: [id], onDelete: Cascade)
+  article_tags article_tags @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@unique([article_id, tag_id])
+}
+
+model article_tags {
+  id                    Int                     @id @default(autoincrement())
+  name                  String
+  slug                  String                  @unique
+  created_at            DateTime                @default(now())
+  updated_at            DateTime
+  article_tag_relations article_tag_relations[]
+}
+
+model articles {
+  id                      Int                       @id @default(autoincrement())
+  title                   String
+  slug                    String                    @unique
+  content                 String
+  excerpt                 String?
+  featured_image          String?
+  category_id             Int
+  author_id               Int
+  is_published            Boolean                   @default(false)
+  published_at            DateTime?
+  created_at              DateTime                  @default(now())
+  updated_at              DateTime
+  ai_prompt               String?
+  is_ai                   Boolean                   @default(false)
+  scheduled_for           DateTime?
+  country_code            String?
+  featured                Boolean                   @default(false)
+  language_code           String?                   @default("en")
+  article_ai_enhancements article_ai_enhancements[]
+  article_boosts          article_boosts[]
+  article_tag_relations   article_tag_relations[]
+  users                   users                     @relation(fields: [author_id], references: [id])
+  article_categories      article_categories        @relation(fields: [category_id], references: [id])
+  countries               countries?                @relation(fields: [country_code], references: [code])
+  languages               languages?                @relation(fields: [language_code], references: [code])
+  bookmarks               bookmarks[]
+  reactions               reactions[]
+  scheduled_posts         scheduled_posts?
+
+  @@index([country_code])
+  @@index([featured])
+  @@index([is_published])
+  @@index([language_code, country_code])
+  @@index([language_code])
+  @@index([published_at])
+}
+
+model bookmarks {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  article_id Int
+  created_at DateTime @default(now())
+  articles   articles @relation(fields: [article_id], references: [id], onDelete: Cascade)
+  users      users    @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, article_id])
+}
+
+model cafe_members {
+  id        Int      @id @default(autoincrement())
+  cafe_id   Int
+  user_id   Int
+  joined_at DateTime @default(now())
+  cafes     cafes    @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [user_id], references: [id])
+
+  @@unique([cafe_id, user_id])
+}
+
+model cafe_posts {
+  id         Int         @id @default(autoincrement())
+  content    String
+  cafe_id    Int
+  author_id  Int
+  created_at DateTime    @default(now())
+  updated_at DateTime
+  users      users       @relation(fields: [author_id], references: [id])
+  cafes      cafes       @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+  reactions  reactions[]
+}
+
+model cafe_roles {
+  id              Int               @id @default(autoincrement())
+  name            String            @unique
+  description     String?
+  created_at      DateTime          @default(now())
+  updated_at      DateTime
+  user_cafe_roles user_cafe_roles[]
+}
+
+model cafes {
+  id              Int               @id @default(autoincrement())
+  name            String
+  slug            String            @unique
+  description     String?
+  cover_image     String?
+  owner_id        Int
+  is_private      Boolean           @default(false)
+  created_at      DateTime          @default(now())
+  updated_at      DateTime
+  country_code    String?
+  language_code   String?           @default("en")
+  cafe_members    cafe_members[]
+  cafe_posts      cafe_posts[]
+  countries       countries?        @relation(fields: [country_code], references: [code])
+  languages       languages?        @relation(fields: [language_code], references: [code])
+  users           users             @relation(fields: [owner_id], references: [id])
+  user_cafe_roles user_cafe_roles[]
+
+  @@index([country_code])
+  @@index([language_code, country_code])
+  @@index([language_code])
+}
+
+model challenge_participants {
+  id             Int                 @id @default(autoincrement())
+  challenge_id   Int
+  user_id        Int
+  submission_url String?
+  vote_count     Int                 @default(0)
+  result         participant_results @default(PENDING)
+  submitted_at   DateTime?
+  created_at     DateTime            @default(now())
+  challenges     challenges          @relation(fields: [challenge_id], references: [id], onDelete: Cascade)
+  users          users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([challenge_id, user_id])
+}
+
+model challenges {
+  id                     Int                      @id @default(autoincrement())
+  title                  String
+  description            String
+  reward                 Int
+  entryFee               Int
+  type                   challenge_types
+  start_date             DateTime
+  end_date               DateTime
+  status                 challenge_status         @default(OPEN)
+  created_by_id          Int
+  created_at             DateTime                 @default(now())
+  updated_at             DateTime
+  challenge_participants challenge_participants[]
+  users                  users                    @relation(fields: [created_by_id], references: [id])
+  reactions              reactions[]
+}
+
+model cities {
+  id         Int       @id @default(autoincrement())
+  name       String
+  country_id Int
+  created_at DateTime  @default(now())
+  updated_at DateTime
+  countries  countries @relation(fields: [country_id], references: [id])
+  users      users[]
+
+  @@unique([name, country_id])
+}
+
+model countries {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  language_id Int
+  created_at  DateTime   @default(now())
+  updated_at  DateTime
+  code        String     @unique
+  articles    articles[]
+  cafes       cafes[]
+  cities      cities[]
+  languages   languages  @relation(fields: [language_id], references: [id])
+  users       users[]
+}
+
+model follows {
+  id                                Int      @id @default(autoincrement())
+  follower_id                       Int
+  following_id                      Int
+  created_at                        DateTime @default(now())
+  users_follows_follower_idTousers  users    @relation("follows_follower_idTousers", fields: [follower_id], references: [id], onDelete: Cascade)
+  users_follows_following_idTousers users    @relation("follows_following_idTousers", fields: [following_id], references: [id], onDelete: Cascade)
+
+  @@unique([follower_id, following_id])
+  @@index([follower_id])
+  @@index([following_id])
+}
+
+model global_roles {
+  id                Int                 @id @default(autoincrement())
+  name              String              @unique
+  description       String?
+  created_at        DateTime            @default(now())
+  updated_at        DateTime
+  user_global_roles user_global_roles[]
+}
+
+model languages {
+  id           Int            @id @default(autoincrement())
+  name         String
+  native_name  String
+  code         String         @unique
+  created_at   DateTime       @default(now())
+  updated_at   DateTime
+  direction    String?        @default("ltr")
+  articles     articles[]
+  cafes        cafes[]
+  countries    countries[]
+  translations translations[]
+  users        users[]
+}
+
+model project_tasks {
+  id                Int                 @id @default(autoincrement())
+  project_id        Int
+  title             String
+  description       String
+  price             Int
+  status            task_status         @default(PENDING)
+  created_at        DateTime            @default(now())
+  updated_at        DateTime
+  projects          projects            @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  task_applications task_applications[]
+  task_assignments  task_assignments?
+  task_payments     task_payments?
+}
+
+model projects {
+  id            Int             @id @default(autoincrement())
+  owner_id      Int
+  title         String
+  description   String
+  is_public     Boolean         @default(true)
+  status        project_status  @default(OPEN)
+  created_at    DateTime        @default(now())
+  updated_at    DateTime
+  project_tasks project_tasks[]
+  users         users           @relation(fields: [owner_id], references: [id])
+  reactions     reactions[]
+}
+
+model reactions {
+  id           Int            @id @default(autoincrement())
+  user_id      Int
+  type         reaction_types
+  article_id   Int?
+  project_id   Int?
+  challenge_id Int?
+  cafe_post_id Int?
+  created_at   DateTime       @default(now())
+  updated_at   DateTime
+  articles     articles?      @relation(fields: [article_id], references: [id], onDelete: Cascade)
+  cafe_posts   cafe_posts?    @relation(fields: [cafe_post_id], references: [id], onDelete: Cascade)
+  challenges   challenges?    @relation(fields: [challenge_id], references: [id], onDelete: Cascade)
+  projects     projects?      @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  users        users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, article_id])
+  @@unique([user_id, cafe_post_id])
+  @@unique([user_id, challenge_id])
+  @@unique([user_id, project_id])
+}
+
+model scheduled_posts {
+  id          Int                   @id @default(autoincrement())
+  article_id  Int                   @unique
+  user_id     Int
+  publish_at  DateTime
+  ai_enhanced Boolean               @default(false)
+  status      scheduled_post_status @default(SCHEDULED)
+  created_at  DateTime              @default(now())
+  updated_at  DateTime
+  articles    articles              @relation(fields: [article_id], references: [id], onDelete: Cascade)
+  users       users                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([publish_at, status])
+}
+
+model task_applications {
+  id            Int           @id @default(autoincrement())
+  task_id       Int
+  applicant_id  Int
+  message       String
+  created_at    DateTime      @default(now())
+  users         users         @relation(fields: [applicant_id], references: [id])
+  project_tasks project_tasks @relation(fields: [task_id], references: [id], onDelete: Cascade)
+
+  @@unique([task_id, applicant_id])
+}
+
+model task_assignments {
+  id            Int           @id @default(autoincrement())
+  task_id       Int           @unique
+  user_id       Int
+  assigned_at   DateTime      @default(now())
+  project_tasks project_tasks @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  users         users         @relation(fields: [user_id], references: [id])
+}
+
+model task_payments {
+  id            Int           @id @default(autoincrement())
+  task_id       Int           @unique
+  user_id       Int
+  amount        Int
+  is_paid       Boolean       @default(false)
+  paid_at       DateTime?
+  created_at    DateTime      @default(now())
+  project_tasks project_tasks @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  users         users         @relation(fields: [user_id], references: [id])
+}
+
+model translations {
+  id         Int       @id @default(autoincrement())
+  key        String
+  lang_code  String
+  value      String
+  created_at DateTime  @default(now())
+  updated_at DateTime
+  languages  languages @relation(fields: [lang_code], references: [code])
+
+  @@unique([key, lang_code])
+}
+
+model user_cafe_roles {
+  id         Int        @id @default(autoincrement())
+  user_id    Int
+  cafe_id    Int
+  role_id    Int
+  created_at DateTime   @default(now())
+  cafes      cafes      @relation(fields: [cafe_id], references: [id], onDelete: Cascade)
+  cafe_roles cafe_roles @relation(fields: [role_id], references: [id])
+  users      users      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, cafe_id, role_id])
+}
+
+model user_global_roles {
+  id           Int          @id @default(autoincrement())
+  user_id      Int
+  role_id      Int
+  created_at   DateTime     @default(now())
+  global_roles global_roles @relation(fields: [role_id], references: [id])
+  users        users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, role_id])
+}
+
+model users {
+  id                                  Int                       @id @default(autoincrement())
+  email                               String                    @unique
+  password                            String
+  first_name                          String?
+  last_name                           String?
+  username                            String?                   @unique
+  avatar                              String?
+  bio                                 String?
+  role                                user_roles                @default(GUEST)
+  xp                                  Int                       @default(0)
+  language_id                         Int?
+  country_id                          Int?
+  is_active                           Boolean                   @default(true)
+  email_verified                      Boolean                   @default(false)
+  created_at                          DateTime                  @default(now())
+  updated_at                          DateTime
+  city_id                             Int?
+  tech_coin                           Int                       @default(100)
+  ai_keys                             ai_keys[]
+  article_ai_enhancements             article_ai_enhancements[]
+  article_boosts                      article_boosts[]
+  articles                            articles[]
+  bookmarks                           bookmarks[]
+  cafe_members                        cafe_members[]
+  cafe_posts                          cafe_posts[]
+  cafes                               cafes[]
+  challenge_participants              challenge_participants[]
+  challenges                          challenges[]
+  follows_follows_follower_idTousers  follows[]                 @relation("follows_follower_idTousers")
+  follows_follows_following_idTousers follows[]                 @relation("follows_following_idTousers")
+  projects                            projects[]
+  reactions                           reactions[]
+  scheduled_posts                     scheduled_posts[]
+  task_applications                   task_applications[]
+  task_assignments                    task_assignments[]
+  task_payments                       task_payments[]
+  user_cafe_roles                     user_cafe_roles[]
+  user_global_roles                   user_global_roles[]
+  cities                              cities?                   @relation(fields: [city_id], references: [id])
+  countries                           countries?                @relation(fields: [country_id], references: [id])
+  languages                           languages?                @relation(fields: [language_id], references: [id])
+  wallet_transactions                 wallet_transactions[]
+  wallets                             wallets?
+}
+
+model wallet_transactions {
+  id          Int               @id @default(autoincrement())
+  user_id     Int
+  type        transaction_types
   amount      Int
   description String
-  createdAt   DateTime        @default(now()) @map("created_at")
-  
-  // Relations
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("wallet_transactions")
+  created_at  DateTime          @default(now())
+  users       users             @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
-// Challenge System
-enum ChallengeType {
-  VOTE
-  JUDGE
-  
-  @@map("challenge_types")
+model wallets {
+  id         Int      @id @default(autoincrement())
+  user_id    Int      @unique
+  tech_coin  Int      @default(100)
+  xp         Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
-enum ChallengeStatus {
+enum ai_enhancement_types {
+  TITLE_OPTIMIZATION
+  SUMMARY_GENERATION
+  SEO_TAGS
+  FULL_ENHANCEMENT
+}
+
+enum challenge_status {
   OPEN
   CLOSED
-  
-  @@map("challenge_status")
 }
 
-model Challenge {
-  id          Int               @id @default(autoincrement())
-  title       String
-  description String
-  reward      Int               // TechCoin reward for winner
-  entryFee    Int               // TechCoin fee to participate
-  type        ChallengeType
-  startDate   DateTime          @map("start_date")
-  endDate     DateTime          @map("end_date")
-  status      ChallengeStatus   @default(OPEN)
-  createdById Int               @map("created_by_id")
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
-  
-  // Relations
-  createdBy   User              @relation("ChallengeCreator", fields: [createdById], references: [id])
-  participants ChallengeParticipant[]
-  reactions   Reaction[]
-  
-  @@map("challenges")
+enum challenge_types {
+  VOTE
+  JUDGE
 }
 
-enum ParticipantResult {
+enum participant_results {
   PENDING
   WINNER
   LOST
-  
-  @@map("participant_results")
 }
 
-model ChallengeParticipant {
-  id            Int               @id @default(autoincrement())
-  challengeId   Int               @map("challenge_id")
-  userId        Int               @map("user_id")
-  submissionUrl String?           @map("submission_url")
-  voteCount     Int               @default(0) @map("vote_count")
-  result        ParticipantResult @default(PENDING)
-  submittedAt   DateTime?         @map("submitted_at")
-  createdAt     DateTime          @default(now()) @map("created_at")
-  
-  // Relations
-  challenge     Challenge         @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([challengeId, userId])
-  @@map("challenge_participants")
+enum project_status {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
 }
 
-// ==========================================
-// REACTIONS SYSTEM
-// ==========================================
-
-enum ReactionType {
+enum reaction_types {
   LIKE
   LOVE
   LAUGH
   WOW
   SAD
   ANGRY
-  
-  @@map("reaction_types")
 }
 
-model Reaction {
-  id          Int          @id @default(autoincrement())
-  userId      Int          @map("user_id")
-  type        ReactionType
-  
-  // Content references (only one should be set)
-  articleId   Int?         @map("article_id")
-  projectId   Int?         @map("project_id")
-  challengeId Int?         @map("challenge_id")
-  cafePostId  Int?         @map("cafe_post_id")
-  
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  
-  // Relations
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  article     Article?     @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  project     Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  challenge   Challenge?   @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  cafePost    CafePost?    @relation(fields: [cafePostId], references: [id], onDelete: Cascade)
-  
-  // Ensure user can only react once per content
-  @@unique([userId, articleId])
-  @@unique([userId, projectId])
-  @@unique([userId, challengeId])
-  @@unique([userId, cafePostId])
-  @@map("reactions")
-}
-
-// ==========================================
-// ARTICLE SCHEDULING & ENHANCEMENT SYSTEM
-// ==========================================
-
-enum ScheduledPostStatus {
+enum scheduled_post_status {
   SCHEDULED
   PUBLISHED
   CANCELED
-  
-  @@map("scheduled_post_status")
 }
 
-model ScheduledPost {
-  id          Int                 @id @default(autoincrement())
-  articleId   Int                 @map("article_id")
-  userId      Int                 @map("user_id")
-  publishAt   DateTime            @map("publish_at")
-  aiEnhanced  Boolean             @default(false) @map("ai_enhanced")
-  status      ScheduledPostStatus @default(SCHEDULED)
-  createdAt   DateTime            @default(now()) @map("created_at")
-  updatedAt   DateTime            @updatedAt @map("updated_at")
-  
-  // Relations
-  article     Article             @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([articleId]) // One scheduled post per article
-  @@index([publishAt, status])
-  @@map("scheduled_posts")
+enum task_status {
+  PENDING
+  ASSIGNED
+  DONE
 }
 
-model ArticleBoost {
-  id          Int      @id @default(autoincrement())
-  articleId   Int      @map("article_id")
-  userId      Int      @map("user_id")
-  coinSpent   Int      @map("coin_spent") // TechCoin spent for boosting
-  startDate   DateTime @map("start_date")
-  endDate     DateTime @map("end_date")
-  createdAt   DateTime @default(now()) @map("created_at")
-  
-  // Relations
-  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([startDate, endDate])
-  @@index([articleId])
-  @@map("article_boosts")
+enum transaction_types {
+  BUY
+  EARN
+  SPEND
 }
 
-enum AIEnhancementType {
-  TITLE_OPTIMIZATION
-  SUMMARY_GENERATION
-  SEO_TAGS
-  FULL_ENHANCEMENT
-  
-  @@map("ai_enhancement_types")
-}
-
-model ArticleAIEnhancement {
-  id             Int               @id @default(autoincrement())
-  articleId      Int               @map("article_id")
-  userId         Int               @map("user_id")
-  enhancementType AIEnhancementType @map("enhancement_type")
-  originalValue  String            @map("original_value") // Original title/summary/tags
-  enhancedValue  String            @map("enhanced_value") // AI-enhanced version
-  coinSpent      Int               @map("coin_spent") // TechCoin spent for AI enhancement
-  isApplied      Boolean           @default(false) @map("is_applied") // Whether user applied the enhancement
-  createdAt      DateTime          @default(now()) @map("created_at")
-  
-  // Relations
-  article        Article           @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([articleId, enhancementType])
-  @@map("article_ai_enhancements")
-}
-
-// ==========================================
-// FOLLOW SYSTEM
-// ==========================================
-
-model Follow {
-  id         Int      @id @default(autoincrement())
-  followerId Int      @map("follower_id") // User who follows
-  followingId Int     @map("following_id") // User being followed
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  // Relations
-  follower   User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
-  following  User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
-
-  @@unique([followerId, followingId])
-  @@index([followerId])
-  @@index([followingId])
-  @@map("follows")
+enum user_roles {
+  GUEST
+  MEMBER
+  THINKER
+  JOURNALIST
+  BARISTA
 }

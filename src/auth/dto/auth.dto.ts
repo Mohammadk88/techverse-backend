@@ -39,7 +39,7 @@ export class RegisterDto {
   })
   @IsOptional()
   @IsString()
-  firstName?: string;
+  first_name?: string;
 
   @ApiProperty({
     description: 'User last name',
@@ -48,7 +48,7 @@ export class RegisterDto {
   })
   @IsOptional()
   @IsString()
-  lastName?: string;
+  last_name?: string;
 
   @ApiProperty({
     description: 'Country ID',
@@ -56,7 +56,7 @@ export class RegisterDto {
   })
   @Type(() => Number)
   @IsInt()
-  countryId: number;
+  country_id: number;
 
   @ApiProperty({
     description: 'City ID',
@@ -64,7 +64,7 @@ export class RegisterDto {
   })
   @Type(() => Number)
   @IsInt()
-  cityId: number;
+  city_id: number;
 
   @ApiProperty({
     description: 'Language ID for user interface',
@@ -72,7 +72,7 @@ export class RegisterDto {
   })
   @Type(() => Number)
   @IsInt()
-  languageId: number;
+  language_id: number;
 }
 
 export class LoginDto {
@@ -103,15 +103,15 @@ export class AuthResponseDto {
   user: {
     id: number;
     email: string;
-    firstName?: string | null;
-    lastName?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
     username?: string | null;
     role: string;
     xp: number;
     language?: {
       id: number;
       name: string;
-      nativeName: string;
+      native_name: string;
       code: string;
       direction: string | null;
     } | null;

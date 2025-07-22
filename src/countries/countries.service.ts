@@ -6,27 +6,27 @@ export class CountriesService {
   constructor(private prisma: PrismaService) {}
 
   async findAll() {
-    return this.prisma.country.findMany({
+    return this.prisma.countries.findMany({
       include: {
-        language: true,
+        languages: true,
       },
       orderBy: { name: 'asc' },
     });
   }
 
   async findOne(id: number) {
-    return this.prisma.country.findUnique({
+    return this.prisma.countries.findUnique({
       where: { id },
       include: {
-        language: true,
+        languages: true,
         cities: true,
       },
     });
   }
 
-  async findCitiesByCountry(countryId: number) {
-    return this.prisma.city.findMany({
-      where: { countryId },
+  async findCitiesByCountry(country_id: number) {
+    return this.prisma.cities.findMany({
+      where: { country_id },
       orderBy: { name: 'asc' },
     });
   }

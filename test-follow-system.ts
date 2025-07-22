@@ -7,7 +7,7 @@ async function testFollowSystem() {
     console.log('🧪 Testing Follow System...\n');
 
     // Check if we have users to test with
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       take: 3,
       select: {
         id: true,
@@ -33,20 +33,20 @@ async function testFollowSystem() {
     // Test follow creation
     console.log(`👥 Testing follow: ${user1.username || user1.email} follows ${user2.username || user2.email}`);
     
-    const follow = await prisma.follow.create({
+    const follow = await prisma.follows.create({
       data: {
-        followerId: user1.id,
-        followingId: user2.id,
+        follower_id: user1.id,
+        following_id: user2.id,
       },
       include: {
-        follower: {
+        users_follows_follower_idTousers: {
           select: {
             id: true,
             username: true,
             email: true,
           },
         },
-        following: {
+        users_follows_following_idTousers: {
           select: {
             id: true,
             username: true,
@@ -57,16 +57,16 @@ async function testFollowSystem() {
     });
 
     console.log('✅ Follow created successfully:');
-    console.log(`   ${follow.follower.username || follow.follower.email} → ${follow.following.username || follow.following.email}`);
+    console.log(`   ${follow.users_follows_follower_idTousers.username || follow.users_follows_follower_idTousers.email} → ${follow.users_follows_following_idTousers.username || follow.users_follows_following_idTousers.email}`);
     console.log();
 
     // Test follow counts
     console.log('📈 Testing follow counts...');
-    const followersCount = await prisma.follow.count({
-      where: { followingId: user2.id },
+    const followersCount = await prisma.follows.count({
+      where: { following_id: user2.id },
     });
-    const followingCount = await prisma.follow.count({
-      where: { followerId: user1.id },
+    const followingCount = await prisma.follows.count({
+      where: { follower_id: user1.id },
     });
 
     console.log(`   ${user2.username || user2.email} has ${followersCount} followers`);
@@ -76,10 +76,10 @@ async function testFollowSystem() {
     // Test duplicate follow prevention
     console.log('🚫 Testing duplicate follow prevention...');
     try {
-      await prisma.follow.create({
+      await prisma.follows.create({
         data: {
-          followerId: user1.id,
-          followingId: user2.id,
+          follower_id: user1.id,
+          following_id: user2.id,
         },
       });
       console.log('❌ ERROR: Duplicate follow was allowed!');
@@ -90,7 +90,7 @@ async function testFollowSystem() {
 
     // Clean up
     console.log('🧹 Cleaning up test data...');
-    await prisma.follow.delete({
+    await prisma.follows.delete({
       where: {
         id: follow.id,
       },

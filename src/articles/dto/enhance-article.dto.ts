@@ -32,7 +32,7 @@ export class ArticleAIEnhancementResponseDto {
   id: number;
 
   @ApiProperty({ description: 'معرف المقال' })
-  articleId: number;
+  article_id: number;
 
   @ApiProperty({ description: 'نوع التحسين' })
   enhancementType: string;
@@ -50,5 +50,5 @@ export class ArticleAIEnhancementResponseDto {
   isApplied: boolean;
 
   @ApiProperty({ description: 'تاريخ الإنشاء' })
-  createdAt: string;
+  created_at: string;
 }

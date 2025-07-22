@@ -6,12 +6,12 @@ export interface SearchResultItem {
   avatar?: string | null;
   author?: {
     id: number;
-    firstName?: string | null;
-    lastName?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
     username?: string | null;
   };
   metadata?: any;
-  createdAt: Date;
+  created_at: Date;
 }
 
 export interface SearchResponse {

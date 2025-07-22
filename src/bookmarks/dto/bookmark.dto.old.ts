@@ -24,7 +24,7 @@ export class CreateBookmarkDto {
   @IsInt()
   @Min(1)
   @IsOptional()
-  articleId?: number;
+  article_id?: number;
 
   @ApiPropertyOptional({
     description: 'Post ID (required if type is POST)',

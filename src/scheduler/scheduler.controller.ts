@@ -45,8 +45,9 @@ export class SchedulerController {
     status: 200,
     description: 'List of scheduled articles',
   })
-  @Roles(UserRole.BARISTA, UserRole.JOURNALIST, UserRole.THINKER, UserRole.MEMBER) // Added MEMBER for testing
-  async getScheduledContent() {
+    @Roles(UserRole.BARISTA, UserRole.JOURNALIST, UserRole.THINKER, UserRole.MEMBER) // Added MEMBER for testing
+  @HttpCode(HttpStatus.OK)
+  async getScheduledContent(): Promise<any> {
     return this.schedulerService.getScheduledContent();
   }
 

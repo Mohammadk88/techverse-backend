@@ -39,16 +39,16 @@ export class FollowController {
           type: 'object',
           properties: {
             id: { type: 'number' },
-            followerId: { type: 'number' },
-            followingId: { type: 'number' },
-            createdAt: { type: 'string', format: 'date-time' },
-            following: {
+            follower_id: { type: 'number' },
+            following_id: { type: 'number' },
+            created_at: { type: 'string', format: 'date-time' },
+            users_follows_following_idTousers: {
               type: 'object',
               properties: {
                 id: { type: 'number' },
                 username: { type: 'string' },
-                firstName: { type: 'string' },
-                lastName: { type: 'string' },
+                first_name: { type: 'string' },
+                last_name: { type: 'string' },
                 avatar: { type: 'string' },
               },
             },
@@ -61,10 +61,10 @@ export class FollowController {
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 409, description: 'Already following this user' })
   async followUser(
-    @Param('id', ParseIntPipe) followingId: number,
+    @Param('id', ParseIntPipe) following_id: number,
     @CurrentUser() user: User,
   ) {
-    return this.followService.followUser(user.id, followingId);
+    return this.followService.followUser(user.id, following_id);
   }
 
   @Delete(':id/unfollow')
@@ -83,10 +83,10 @@ export class FollowController {
   @ApiResponse({ status: 400, description: 'Cannot unfollow yourself' })
   @ApiResponse({ status: 404, description: 'Not following this user' })
   async unfollowUser(
-    @Param('id', ParseIntPipe) followingId: number,
+    @Param('id', ParseIntPipe) following_id: number,
     @CurrentUser() user: User,
   ) {
-    return this.followService.unfollowUser(user.id, followingId);
+    return this.followService.unfollowUser(user.id, following_id);
   }
 
   @Get(':id/followers')
@@ -104,8 +104,8 @@ export class FollowController {
             properties: {
               id: { type: 'number' },
               username: { type: 'string' },
-              firstName: { type: 'string' },
-              lastName: { type: 'string' },
+              first_name: { type: 'string' },
+              last_name: { type: 'string' },
               avatar: { type: 'string' },
               bio: { type: 'string' },
               xp: { type: 'number' },
@@ -127,10 +127,10 @@ export class FollowController {
   })
   @ApiResponse({ status: 404, description: 'User not found' })
   async getFollowers(
-    @Param('id', ParseIntPipe) userId: number,
+    @Param('id', ParseIntPipe) user_id: number,
     @Query() paginationDto: PaginationDto,
   ) {
-    return this.followService.getFollowers(userId, paginationDto);
+    return this.followService.getFollowers(user_id, paginationDto);
   }
 
   @Get(':id/following')
@@ -148,8 +148,8 @@ export class FollowController {
             properties: {
               id: { type: 'number' },
               username: { type: 'string' },
-              firstName: { type: 'string' },
-              lastName: { type: 'string' },
+              first_name: { type: 'string' },
+              last_name: { type: 'string' },
               avatar: { type: 'string' },
               bio: { type: 'string' },
               xp: { type: 'number' },
@@ -171,10 +171,10 @@ export class FollowController {
   })
   @ApiResponse({ status: 404, description: 'User not found' })
   async getFollowing(
-    @Param('id', ParseIntPipe) userId: number,
+    @Param('id', ParseIntPipe) user_id: number,
     @Query() paginationDto: PaginationDto,
   ) {
-    return this.followService.getFollowing(userId, paginationDto);
+    return this.followService.getFollowing(user_id, paginationDto);
   }
 
   @Get(':id/follow-counts')
@@ -191,8 +191,8 @@ export class FollowController {
     },
   })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getFollowCounts(@Param('id', ParseIntPipe) userId: number) {
-    return this.followService.getFollowCounts(userId);
+  async getFollowCounts(@Param('id', ParseIntPipe) user_id: number) {
+    return this.followService.getFollowStats(user_id);
   }
 
   @Get(':id/follow-status')
@@ -215,6 +215,6 @@ export class FollowController {
     @Param('id', ParseIntPipe) targetUserId: number,
     @CurrentUser() user: User,
   ) {
-    return this.followService.getFollowStatus(user.id, targetUserId);
+    return this.followService.isFollowing(user.id, targetUserId);
   }
 }

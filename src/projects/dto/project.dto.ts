@@ -42,7 +42,7 @@ export class CreateProjectDto {
   })
   @IsOptional()
   @IsBoolean()
-  isPublic?: boolean = true;
+  is_public?: boolean = true;
 }
 
 export class UpdateProjectDto extends PartialType(CreateProjectDto) {
@@ -144,7 +144,7 @@ export class ProjectFilterDto {
   @IsOptional()
   @Transform(({ value }) => value === 'true')
   @IsBoolean()
-  isPublic?: boolean = true;
+  is_public?: boolean = true;
 }
 
 export class TaskFilterDto {

@@ -1,7 +1,7 @@
 import { SetMetadata } from '@nestjs/common';
 
 export const GlobalRoles = (...roles: string[]) =>
-  SetMetadata('global_roles', roles);
+  SetMetadata('user_global_roles', roles);
 
 export const CafeRoles = (...roles: string[]) =>
   SetMetadata('cafe_roles', roles);

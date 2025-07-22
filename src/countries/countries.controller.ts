@@ -19,16 +19,16 @@ export class CountriesController {
         id: 1,
         name: 'United States',
         code: 'US',
-        languageId: 1,
+        language_id: 1,
         language: {
           id: 1,
           name: 'English',
-          nativeName: 'English',
+          native_name: 'English',
           code: 'en',
           direction: 'ltr',
         },
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-01T00:00:00.000Z',
+        created_at: '2025-01-01T00:00:00.000Z',
+        updated_at: '2025-01-01T00:00:00.000Z',
       },
     ],
   })
@@ -47,9 +47,9 @@ export class CountriesController {
       {
         id: 1,
         name: 'New York',
-        countryId: 1,
-        createdAt: '2025-01-01T00:00:00.000Z',
-        updatedAt: '2025-01-01T00:00:00.000Z',
+        country_id: 1,
+        created_at: '2025-01-01T00:00:00.000Z',
+        updated_at: '2025-01-01T00:00:00.000Z',
       },
     ],
   })

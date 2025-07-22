@@ -10,7 +10,7 @@ export class CreateBookmarkDto {
   @Transform(({ value }) => parseInt(value))
   @IsInt()
   @Min(1)
-  articleId: number;
+  article_id: number;
 }
 
 export class BookmarkFilterDto {

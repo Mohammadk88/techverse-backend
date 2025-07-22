@@ -16,42 +16,39 @@ export class SchedulerService {
 
     try {
       // Publish scheduled articles
-      const scheduledArticles = await this.prisma.article.findMany({
+      const scheduledArticles = await this.prisma.articles.findMany({
         where: {
-          isPublished: false,
-          scheduledFor: {
+          is_published: false,
+          scheduled_for: {
             lte: now,
           },
         },
         select: {
           id: true,
           title: true,
-          scheduledFor: true,
+          scheduled_for: true,
         },
       });
 
       if (scheduledArticles.length > 0) {
-        const publishedArticles = await this.prisma.article.updateMany({
+        // Mark articles as published
+        await this.prisma.articles.updateMany({
           where: {
-            id: {
-              in: scheduledArticles.map((article) => article.id),
-            },
+            id: { in: scheduledArticles.map((a) => a.id) },
           },
           data: {
-            isPublished: true,
-            publishedAt: now,
-            scheduledFor: null, // Clear the schedule
+            is_published: true,
           },
         });
 
         this.logger.log(
-          `Published ${publishedArticles.count} scheduled articles`,
+          `Published ${scheduledArticles.length} scheduled articles`,
         );
 
         // Log each published article
         scheduledArticles.forEach((article) => {
           this.logger.log(
-            `📄 Published article: "${article.title}" (scheduled for ${article.scheduledFor?.toISOString()})`,
+            `📄 Published article: "${article.title}" (scheduled for ${article.scheduled_for?.toISOString()})`,
           );
         });
       }
@@ -70,26 +67,26 @@ export class SchedulerService {
   }> {
     const now = new Date();
 
-    const articles = await this.prisma.article.findMany({
+    const articles = await this.prisma.articles.findMany({
       where: {
-        isPublished: false,
-        scheduledFor: {
+        is_published: false,
+        scheduled_for: {
           gt: now,
         },
       },
       include: {
-        author: {
+        users: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            first_name: true,
+            last_name: true,
             username: true,
           },
         },
-        category: true,
+        article_categories: true,
       },
       orderBy: {
-        scheduledFor: 'asc',
+        scheduled_for: 'asc',
       },
     });
 
@@ -100,10 +97,10 @@ export class SchedulerService {
   }
 
   async cancelScheduledContent(type: 'article', id: number): Promise<void> {
-    await this.prisma.article.update({
+    await this.prisma.articles.update({
       where: { id },
       data: {
-        scheduledFor: null,
+        scheduled_for: null,
       },
     });
 
@@ -115,11 +112,11 @@ export class SchedulerService {
     id: number,
     newScheduleTime: Date,
   ): Promise<void> {
-    await this.prisma.article.update({
+    await this.prisma.articles.update({
       where: { id },
       data: {
-        scheduledFor: newScheduleTime,
-        isPublished: false, // Ensure it's not published yet
+        scheduled_for: newScheduleTime,
+        is_published: false, // Ensure it's not published yet
       },
     });
 

@@ -10,6 +10,7 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../database/prisma.service';
 import { RegisterDto, LoginDto, AuthResponseDto } from './dto/auth.dto';
 import { UserRole } from '../common/decorators/roles.decorator';
+import { user_roles } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -23,16 +24,16 @@ export class AuthService {
     const {
       email,
       password,
-      firstName,
-      lastName,
+      first_name,
+      last_name,
       username,
-      countryId,
-      cityId,
-      languageId,
+      country_id,
+      city_id,
+      language_id,
     } = registerDto;
 
     // Check if user already exists
-    const existingUser = await this.prisma.user.findUnique({
+    const existingUser = await this.prisma.users.findUnique({
       where: { email },
     });
 
@@ -41,7 +42,7 @@ export class AuthService {
     }
 
     // Check if username is taken
-    const existingUsername = await this.prisma.user.findUnique({
+    const existingUsername = await this.prisma.users.findUnique({
       where: { username },
     });
 
@@ -50,8 +51,8 @@ export class AuthService {
     }
 
     // Validate language exists
-    const language = await this.prisma.language.findUnique({
-      where: { id: languageId },
+    const language = await this.prisma.languages.findUnique({
+      where: { id: language_id },
     });
 
     if (!language) {
@@ -59,8 +60,8 @@ export class AuthService {
     }
 
     // Validate country exists
-    const country = await this.prisma.country.findUnique({
-      where: { id: countryId },
+    const country = await this.prisma.countries.findUnique({
+      where: { id: country_id },
     });
 
     if (!country) {
@@ -68,16 +69,16 @@ export class AuthService {
     }
 
     // Validate city belongs to the selected country
-    const city = await this.prisma.city.findUnique({
-      where: { id: cityId },
-      include: { country: true },
+    const city = await this.prisma.cities.findUnique({
+      where: { id: city_id },
+      include: { countries: true },
     });
 
     if (!city) {
       throw new BadRequestException('Invalid city selected');
     }
 
-    if (city.countryId !== countryId) {
+    if (city.country_id !== country_id) {
       throw new BadRequestException('Selected city does not belong to the selected country');
     }
 
@@ -87,7 +88,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Get default MEMBER role
-    const memberRole = await this.prisma.globalRole.findUnique({
+    const memberRole = await this.prisma.global_roles.findUnique({
       where: { name: 'MEMBER' },
     });
 
@@ -96,43 +97,50 @@ export class AuthService {
     }
 
     // Create user
-    const user = await this.prisma.user.create({
+    const user = await this.prisma.users.create({
       data: {
         email,
         password: hashedPassword,
-        firstName,
-        lastName,
+        first_name,
+        last_name,
         username,
-        countryId,
-        cityId,
-        languageId,
-        role: UserRole.MEMBER, // Default role (legacy enum)
+        country_id,
+        city_id,
+        language_id,
+        role: user_roles.MEMBER, // Default role (legacy enum)
+        updated_at: new Date(),
       },
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
+        first_name: true,
+        last_name: true,
         username: true,
+        avatar: true,
+        bio: true,
         role: true,
         xp: true,
-        language: {
+        tech_coin: true,
+        is_active: true,
+        email_verified: true,
+        created_at: true,
+        languages: {
           select: {
             id: true,
             name: true,
-            nativeName: true,
+            native_name: true,
             code: true,
             direction: true,
           },
         },
-        country: {
+        countries: {
           select: {
             id: true,
             name: true,
             code: true,
           },
         },
-        city: {
+        cities: {
           select: {
             id: true,
             name: true,
@@ -142,10 +150,10 @@ export class AuthService {
     });
 
     // Assign default global role
-    await this.prisma.userGlobalRole.create({
+    await this.prisma.user_global_roles.create({
       data: {
-        userId: user.id,
-        roleId: memberRole.id,
+        user_id: user.id,
+        role_id: memberRole.id,
       },
     });
 
@@ -168,35 +176,40 @@ export class AuthService {
     const { email, password } = loginDto;
 
     // Find user
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.users.findUnique({
       where: { email },
       select: {
         id: true,
         email: true,
         password: true,
-        firstName: true,
-        lastName: true,
+        first_name: true,
+        last_name: true,
         username: true,
         role: true,
+        user_global_roles: {
+          include: {
+            global_roles: true,
+          },
+        },
         xp: true,
-        isActive: true,
-        language: {
+        is_active: true,
+        languages: {
           select: {
             id: true,
             name: true,
-            nativeName: true,
+            native_name: true,
             code: true,
             direction: true,
           },
         },
-        country: {
+        countries: {
           select: {
             id: true,
             name: true,
             code: true,
           },
         },
-        city: {
+        cities: {
           select: {
             id: true,
             name: true,
@@ -209,7 +222,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (!user.isActive) {
+    if (!user.is_active) {
       throw new UnauthorizedException('Account is deactivated');
     }
 
@@ -223,7 +236,10 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
-      role: user.role,
+      role:
+        user.user_global_roles?.[0]?.global_roles?.name ||
+        user.role ||
+        'MEMBER',
     };
 
     const accessToken = this.jwtService.sign(payload);
@@ -239,30 +255,30 @@ export class AuthService {
   }
 
   async validateUser(id: number) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.users.findUnique({
       where: { id },
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
+        first_name: true,
+        last_name: true,
         username: true,
-        role: true,
+        user_global_roles: true,
         xp: true,
-        isActive: true,
+        is_active: true,
       },
     });
 
-    if (!user || !user.isActive) {
+    if (!user || !user.is_active) {
       throw new UnauthorizedException('User not found or inactive');
     }
 
     return user;
   }
 
-  async addXP(userId: number, points: number) {
-    return this.prisma.user.update({
-      where: { id: userId },
+  async addXP(user_id: number, points: number) {
+    return this.prisma.users.update({
+      where: { id: user_id },
       data: {
         xp: {
           increment: points,

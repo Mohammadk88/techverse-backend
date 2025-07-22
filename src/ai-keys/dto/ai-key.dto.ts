@@ -15,7 +15,7 @@ export class CreateAIKeyDto {
   })
   @IsInt()
   @IsNotEmpty()
-  providerId: number;
+  provider_id: number;
 
   @ApiProperty({
     description: 'The API key secret',
@@ -24,7 +24,7 @@ export class CreateAIKeyDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(10, { message: 'API key must be at least 10 characters long' })
-  secretKey: string;
+  secret_key: string;
 }
 
 export class UpdateAIKeyDto {
@@ -35,7 +35,7 @@ export class UpdateAIKeyDto {
   @IsString()
   @IsOptional()
   @MinLength(10, { message: 'API key must be at least 10 characters long' })
-  secretKey?: string;
+  secret_key?: string;
 
   @ApiPropertyOptional({
     description: 'Whether the API key is active',
@@ -43,7 +43,7 @@ export class UpdateAIKeyDto {
   })
   @IsBoolean()
   @IsOptional()
-  isActive?: boolean;
+  is_active?: boolean;
 }
 
 export class AIKeyResponseDto {
@@ -51,19 +51,19 @@ export class AIKeyResponseDto {
   id: number;
 
   @ApiProperty({ description: 'Provider ID' })
-  providerId: number;
+  provider_id: number;
 
   @ApiProperty({ description: 'Custom key name' })
-  keyName: string;
+  key_name: string;
 
   @ApiProperty({ description: 'Whether key is active' })
-  isActive: boolean;
+  is_active: boolean;
 
   @ApiProperty({ description: 'Created timestamp' })
-  createdAt: Date;
+  created_at: Date;
 
   @ApiProperty({ description: 'Updated timestamp' })
-  updatedAt: Date;
+  updated_at: Date;
 
   @ApiProperty({ description: 'Provider information' })
   provider: {
@@ -84,14 +84,14 @@ export class AIProviderResponseDto {
   label: string;
 
   @ApiProperty({ description: 'Whether provider is active' })
-  isActive: boolean;
+  is_active: boolean;
 
   @ApiProperty({ description: 'Whether this is the default provider' })
-  isDefault: boolean;
+  is_default: boolean;
 
   @ApiProperty({ description: 'Created timestamp' })
-  createdAt: Date;
+  created_at: Date;
 
   @ApiProperty({ description: 'Updated timestamp' })
-  updatedAt: Date;
+  updated_at: Date;
 }

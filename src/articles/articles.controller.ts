@@ -66,14 +66,14 @@ export class ArticlesController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'categoryId', required: false, type: Number })
-  @ApiQuery({ name: 'tagId', required: false, type: Number })
+  @ApiQuery({ name: 'category_id', required: false, type: Number })
+  @ApiQuery({ name: 'tag_id', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'isPublished', required: false, type: Boolean })
+  @ApiQuery({ name: 'is_published', required: false, type: Boolean })
   @ApiQuery({ name: 'featured', required: false, type: Boolean })
   @ApiQuery({ name: 'thisWeek', required: false, type: Boolean })
-  @ApiQuery({ name: 'languageCode', required: false, type: String })
-  @ApiQuery({ name: 'countryCode', required: false, type: String })
+  @ApiQuery({ name: 'language_code', required: false, type: String })
+  @ApiQuery({ name: 'country_code', required: false, type: String })
   @Public()
   @Get()
   async findAll(
@@ -127,7 +127,7 @@ export class ArticlesController {
     status: 200,
     description: 'Article deleted successfully',
   })
-    @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard)
   @Roles(UserRole.JOURNALIST, UserRole.BARISTA)
   @Delete(':id')
   async deleteArticle(@Param('id') id: string, @CurrentUser() user: User) {
@@ -149,7 +149,7 @@ export class ArticlesController {
     const bookmarksService = new (await import('../bookmarks/bookmarks.service')).BookmarksService(
       this.articlesService['prisma']
     );
-    return bookmarksService.createBookmark(user.id, { articleId: +id });
+    return bookmarksService.createBookmark(user.id, { article_id: +id });
   }
 
   // Category endpoints
