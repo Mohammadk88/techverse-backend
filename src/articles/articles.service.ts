@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { AuthService } from '../auth/auth.service';
+import { WalletService } from '../wallet/wallet.service';
 import {
   CreateArticleDto,
   UpdateArticleDto,
@@ -25,6 +26,7 @@ export class ArticlesService {
     private readonly authService: AuthService,
     private readonly aiService: AIService,
     private readonly contentQueryService: ContentQueryService,
+    private readonly walletService: WalletService,
   ) {}
 
   // Article CRUD Operations
@@ -105,7 +107,15 @@ export class ArticlesService {
 
     // Award XP for publishing an article
     if (is_published) {
-      await this.authService.addXP(author_id, 50);
+      try {
+        await this.walletService.awardXPForActivity(
+          author_id,
+          'ARTICLE_PUBLISH',
+        );
+      } catch (error) {
+        console.error('Failed to award XP for article publication:', error);
+        // Don't fail the article creation if XP fails
+      }
     }
 
     return this.findOne(article.id);
@@ -137,7 +147,7 @@ export class ArticlesService {
     }
 
     if (tag_id) {
-      baseWhere.tags = {
+      baseWhere.article_tag_relations = {
         some: {
           tag_id,
         },

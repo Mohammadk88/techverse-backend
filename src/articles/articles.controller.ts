@@ -79,9 +79,17 @@ export class ArticlesController {
   async findAll(
     @Query() filterDto: ArticleFilterDto,
   ) {
-    const { page, limit, ...filters } = filterDto;
+    const { page, limit, categoryId, tagId, ...filters } = filterDto;
+    
+    // Handle both camelCase and snake_case naming conventions
+    const normalizedFilters = {
+      ...filters,
+      category_id: filters.category_id || categoryId,
+      tag_id: filters.tag_id || tagId,
+    };
+    
     const paginationDto = { page, limit };
-    return this.articlesService.findAll(paginationDto, filters);
+    return this.articlesService.findAll(paginationDto, normalizedFilters);
   }
 
   @ApiOperation({ summary: 'Get article by ID' })

@@ -393,10 +393,30 @@
             }
           },
           {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by category ID (camelCase alternative)",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
             "name": "tag_id",
             "required": false,
             "in": "query",
             "description": "Filter by tag ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "tagId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by tag ID (camelCase alternative)",
             "schema": {
               "example": 1,
               "type": "number"
@@ -1391,6 +1411,449 @@
         ]
       }
     },
+    "/wallet": {
+      "get": {
+        "description": "Retrieve complete wallet information including TechCoin balance, XP, and recent transactions",
+        "operationId": "WalletController_getWallet",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Wallet information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": 1,
+                    "user_id": 123,
+                    "tech_coin": 250,
+                    "xp": 850,
+                    "created_at": "2025-07-16T00:00:00Z",
+                    "updated_at": "2025-07-16T12:00:00Z",
+                    "recentTransactions": [
+                      {
+                        "id": 5,
+                        "type": "EARN",
+                        "amount": 25,
+                        "description": "Task completion reward",
+                        "created_at": "2025-07-16T10:30:00Z"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - JWT token required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get user wallet information",
+        "tags": [
+          "💰 Digital Wallet & TechCoin"
+        ]
+      }
+    },
+    "/wallet/checkout": {
+      "post": {
+        "description": "Create a Paddle checkout session to purchase TechCoin. Returns checkout URL for payment",
+        "operationId": "WalletController_createCheckout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuyTechCoinDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Checkout session created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "checkout_url": "https://buy.paddle.com/checkout/...",
+                    "transaction_id": "txn_...",
+                    "amount": 100,
+                    "price": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid amount or configuration error"
+          },
+          "401": {
+            "description": "Unauthorized - JWT token required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create Paddle checkout session",
+        "tags": [
+          "💰 Digital Wallet & TechCoin"
+        ]
+      }
+    },
+    "/wallet/webhook": {
+      "post": {
+        "description": "Handle Paddle webhook events for payment processing",
+        "operationId": "WalletController_paddleWebhook",
+        "parameters": [
+          {
+            "name": "paddle-signature",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook processed successfully"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Paddle webhook endpoint",
+        "tags": [
+          "💰 Digital Wallet & TechCoin"
+        ]
+      }
+    },
+    "/wallet/spend": {
+      "post": {
+        "description": "Spend TechCoin for various platform activities (joining challenges, creating cafes, etc.)",
+        "operationId": "WalletController_spendTechCoin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpendTechCoinDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "TechCoin spent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "transaction": {
+                      "id": 11,
+                      "type": "SPEND",
+                      "amount": -50,
+                      "description": "Joined challenge: Code Master",
+                      "created_at": "2025-07-16T12:45:00Z"
+                    },
+                    "remainingBalance": 300
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Insufficient TechCoin balance"
+          },
+          "401": {
+            "description": "Unauthorized - JWT token required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Spend TechCoin",
+        "tags": [
+          "💰 Digital Wallet & TechCoin"
+        ]
+      }
+    },
+    "/wallet/earn": {
+      "post": {
+        "description": "Earn TechCoin through various activities (completing tasks, winning challenges, etc.)",
+        "operationId": "WalletController_earnTechCoin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EarnTechCoinDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "TechCoin earned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "transaction": {
+                      "id": 12,
+                      "type": "EARN",
+                      "amount": 75,
+                      "description": "Won challenge: Code Master",
+                      "created_at": "2025-07-16T13:00:00Z"
+                    },
+                    "newBalance": 375,
+                    "xpGained": 25
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - JWT token required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Earn TechCoin",
+        "tags": [
+          "💰 Digital Wallet & TechCoin"
+        ]
+      }
+    },
+    "/wallet/transactions": {
+      "get": {
+        "description": "Retrieve paginated transaction history for the user wallet",
+        "operationId": "WalletController_getTransactionHistory",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (default: 1)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page (default: 20, max: 100)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "description": "Filter by transaction type",
+            "schema": {
+              "enum": [
+                "BUY",
+                "SPEND",
+                "EARN"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction history retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "transactions": [
+                      {
+                        "id": 12,
+                        "type": "EARN",
+                        "amount": 75,
+                        "description": "Won challenge: Code Master",
+                        "created_at": "2025-07-16T13:00:00Z"
+                      },
+                      {
+                        "id": 11,
+                        "type": "SPEND",
+                        "amount": -50,
+                        "description": "Joined challenge: Code Master",
+                        "created_at": "2025-07-16T12:45:00Z"
+                      }
+                    ],
+                    "pagination": {
+                      "page": 1,
+                      "limit": 20,
+                      "total": 25,
+                      "totalPages": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - JWT token required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get transaction history",
+        "tags": [
+          "💰 Digital Wallet & TechCoin"
+        ]
+      }
+    },
+    "/wallet/balance": {
+      "get": {
+        "description": "Get current TechCoin balance and XP, optionally check if user has enough for a specific amount",
+        "operationId": "WalletController_checkBalance",
+        "parameters": [
+          {
+            "name": "amount",
+            "required": false,
+            "in": "query",
+            "description": "Amount to check if user has enough TechCoin",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Balance information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "balance": 375,
+                    "xp": 875,
+                    "hasEnough": true,
+                    "requiredAmount": 100
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - JWT token required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check wallet balance",
+        "tags": [
+          "💰 Digital Wallet & TechCoin"
+        ]
+      }
+    },
+    "/wallet/xp/next-role": {
+      "get": {
+        "description": "Get information about the next role and XP required to reach it",
+        "operationId": "WalletController_getNextRoleInfo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Next role information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "currentRole": "MEMBER",
+                    "currentXP": 850,
+                    "nextRole": "JOURNALIST",
+                    "xpRequired": 150,
+                    "progress": 85
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get next role information",
+        "tags": [
+          "💰 Digital Wallet & TechCoin"
+        ]
+      }
+    },
+    "/wallet/xp/thresholds": {
+      "get": {
+        "description": "Get the XP requirements for each role level",
+        "operationId": "WalletController_getXPThresholds",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "XP thresholds retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "GUEST": 0,
+                    "MEMBER": 0,
+                    "JOURNALIST": 1000,
+                    "THINKER": 3000,
+                    "BARISTA": 7000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get XP thresholds for all roles",
+        "tags": [
+          "💰 Digital Wallet & TechCoin"
+        ]
+      }
+    },
     "/cafes": {
       "post": {
         "description": "Create a new café community. Costs 50 TechCoin to create.",
@@ -1867,350 +2330,6 @@
         ],
         "tags": [
           "☕ Cafés"
-        ]
-      }
-    },
-    "/wallet": {
-      "get": {
-        "description": "Retrieve complete wallet information including TechCoin balance, XP, and recent transactions",
-        "operationId": "WalletController_getWallet",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Wallet information retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "example": {
-                    "id": 1,
-                    "user_id": 123,
-                    "tech_coin": 250,
-                    "xp": 850,
-                    "created_at": "2025-07-16T00:00:00Z",
-                    "updated_at": "2025-07-16T12:00:00Z",
-                    "recentTransactions": [
-                      {
-                        "id": 5,
-                        "type": "EARN",
-                        "amount": 25,
-                        "description": "Task completion reward",
-                        "created_at": "2025-07-16T10:30:00Z"
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - JWT token required"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get user wallet information",
-        "tags": [
-          "💰 Digital Wallet & TechCoin"
-        ]
-      }
-    },
-    "/wallet/buy": {
-      "post": {
-        "description": "Buy TechCoin using mock Stripe payment integration. 1 USD = 10 TechCoin",
-        "operationId": "WalletController_buyTechCoin",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BuyTechCoinDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "TechCoin purchased successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "example": {
-                    "success": true,
-                    "transaction": {
-                      "id": 10,
-                      "type": "BUY",
-                      "amount": 100,
-                      "description": "Purchased 100 TechCoin for $10.00",
-                      "stripePaymentId": "pi_mock_12345",
-                      "created_at": "2025-07-16T12:30:00Z"
-                    },
-                    "wallet": {
-                      "tech_coin": 350,
-                      "xp": 850
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Payment failed or invalid amount"
-          },
-          "401": {
-            "description": "Unauthorized - JWT token required"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Purchase TechCoin",
-        "tags": [
-          "💰 Digital Wallet & TechCoin"
-        ]
-      }
-    },
-    "/wallet/spend": {
-      "post": {
-        "description": "Spend TechCoin for various platform activities (joining challenges, creating cafes, etc.)",
-        "operationId": "WalletController_spendTechCoin",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SpendTechCoinDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "TechCoin spent successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "example": {
-                    "success": true,
-                    "transaction": {
-                      "id": 11,
-                      "type": "SPEND",
-                      "amount": -50,
-                      "description": "Joined challenge: Code Master",
-                      "created_at": "2025-07-16T12:45:00Z"
-                    },
-                    "remainingBalance": 300
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Insufficient TechCoin balance"
-          },
-          "401": {
-            "description": "Unauthorized - JWT token required"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Spend TechCoin",
-        "tags": [
-          "💰 Digital Wallet & TechCoin"
-        ]
-      }
-    },
-    "/wallet/earn": {
-      "post": {
-        "description": "Earn TechCoin through various activities (completing tasks, winning challenges, etc.)",
-        "operationId": "WalletController_earnTechCoin",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EarnTechCoinDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "TechCoin earned successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "example": {
-                    "success": true,
-                    "transaction": {
-                      "id": 12,
-                      "type": "EARN",
-                      "amount": 75,
-                      "description": "Won challenge: Code Master",
-                      "created_at": "2025-07-16T13:00:00Z"
-                    },
-                    "newBalance": 375,
-                    "xpGained": 25
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - JWT token required"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Earn TechCoin",
-        "tags": [
-          "💰 Digital Wallet & TechCoin"
-        ]
-      }
-    },
-    "/wallet/transactions": {
-      "get": {
-        "description": "Retrieve paginated transaction history for the user wallet",
-        "operationId": "WalletController_getTransactionHistory",
-        "parameters": [
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "description": "Page number (default: 1)",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Items per page (default: 20, max: 100)",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "type",
-            "required": false,
-            "in": "query",
-            "description": "Filter by transaction type",
-            "schema": {
-              "enum": [
-                "BUY",
-                "SPEND",
-                "EARN"
-              ],
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Transaction history retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "example": {
-                    "transactions": [
-                      {
-                        "id": 12,
-                        "type": "EARN",
-                        "amount": 75,
-                        "description": "Won challenge: Code Master",
-                        "created_at": "2025-07-16T13:00:00Z"
-                      },
-                      {
-                        "id": 11,
-                        "type": "SPEND",
-                        "amount": -50,
-                        "description": "Joined challenge: Code Master",
-                        "created_at": "2025-07-16T12:45:00Z"
-                      }
-                    ],
-                    "pagination": {
-                      "page": 1,
-                      "limit": 20,
-                      "total": 25,
-                      "totalPages": 2
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - JWT token required"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get transaction history",
-        "tags": [
-          "💰 Digital Wallet & TechCoin"
-        ]
-      }
-    },
-    "/wallet/balance": {
-      "get": {
-        "description": "Get current TechCoin balance and XP, optionally check if user has enough for a specific amount",
-        "operationId": "WalletController_checkBalance",
-        "parameters": [
-          {
-            "name": "amount",
-            "required": false,
-            "in": "query",
-            "description": "Amount to check if user has enough TechCoin",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Balance information retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "example": {
-                    "balance": 375,
-                    "xp": 875,
-                    "hasEnough": true,
-                    "requiredAmount": 100
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - JWT token required"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Check wallet balance",
-        "tags": [
-          "💰 Digital Wallet & TechCoin"
         ]
       }
     },
@@ -6117,6 +6236,107 @@
           }
         }
       },
+      "BuyTechCoinDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "description": "Amount of TechCoin to purchase",
+            "example": 100,
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "paymentMethod": {
+            "type": "string",
+            "description": "Payment method (mock for demo)",
+            "example": "stripe",
+            "default": "stripe"
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      },
+      "SpendTechCoinDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "description": "Amount of TechCoin to spend",
+            "example": 50,
+            "minimum": 1
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the spending transaction",
+            "example": "Join challenge: Code Master",
+            "maxLength": 255
+          },
+          "referenceId": {
+            "type": "number",
+            "description": "Reference ID for the transaction (challenge ID, cafe ID, etc.)",
+            "example": 123
+          },
+          "category": {
+            "type": "string",
+            "description": "Type of spending activity",
+            "example": "challenge_entry",
+            "enum": [
+              "challenge_entry",
+              "cafe_creation",
+              "task_escrow",
+              "other"
+            ]
+          }
+        },
+        "required": [
+          "amount",
+          "description"
+        ]
+      },
+      "EarnTechCoinDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "description": "Amount of TechCoin earned",
+            "example": 25,
+            "minimum": 1
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of how the TechCoin was earned",
+            "example": "Completed task: Fix login bug",
+            "maxLength": 255
+          },
+          "xpReward": {
+            "type": "number",
+            "description": "XP points to award along with TechCoin",
+            "example": 10,
+            "default": 0
+          },
+          "referenceId": {
+            "type": "number",
+            "description": "Reference ID for the earning activity",
+            "example": 456
+          },
+          "category": {
+            "type": "string",
+            "description": "Category of earning activity",
+            "example": "task_completion",
+            "enum": [
+              "task_completion",
+              "challenge_win",
+              "bonus_reward",
+              "other"
+            ]
+          }
+        },
+        "required": [
+          "amount",
+          "description"
+        ]
+      },
       "CreateCafeDto": {
         "type": "object",
         "properties": {
@@ -6222,107 +6442,6 @@
             "maxLength": 2000
           }
         }
-      },
-      "BuyTechCoinDto": {
-        "type": "object",
-        "properties": {
-          "amount": {
-            "type": "number",
-            "description": "Amount of TechCoin to purchase",
-            "example": 100,
-            "minimum": 1,
-            "maximum": 10000
-          },
-          "paymentMethod": {
-            "type": "string",
-            "description": "Payment method (mock for demo)",
-            "example": "stripe",
-            "default": "stripe"
-          }
-        },
-        "required": [
-          "amount"
-        ]
-      },
-      "SpendTechCoinDto": {
-        "type": "object",
-        "properties": {
-          "amount": {
-            "type": "number",
-            "description": "Amount of TechCoin to spend",
-            "example": 50,
-            "minimum": 1
-          },
-          "description": {
-            "type": "string",
-            "description": "Description of the spending transaction",
-            "example": "Join challenge: Code Master",
-            "maxLength": 255
-          },
-          "referenceId": {
-            "type": "number",
-            "description": "Reference ID for the transaction (challenge ID, cafe ID, etc.)",
-            "example": 123
-          },
-          "category": {
-            "type": "string",
-            "description": "Type of spending activity",
-            "example": "challenge_entry",
-            "enum": [
-              "challenge_entry",
-              "cafe_creation",
-              "task_escrow",
-              "other"
-            ]
-          }
-        },
-        "required": [
-          "amount",
-          "description"
-        ]
-      },
-      "EarnTechCoinDto": {
-        "type": "object",
-        "properties": {
-          "amount": {
-            "type": "number",
-            "description": "Amount of TechCoin earned",
-            "example": 25,
-            "minimum": 1
-          },
-          "description": {
-            "type": "string",
-            "description": "Description of how the TechCoin was earned",
-            "example": "Completed task: Fix login bug",
-            "maxLength": 255
-          },
-          "xpReward": {
-            "type": "number",
-            "description": "XP points to award along with TechCoin",
-            "example": 10,
-            "default": 0
-          },
-          "referenceId": {
-            "type": "number",
-            "description": "Reference ID for the earning activity",
-            "example": 456
-          },
-          "category": {
-            "type": "string",
-            "description": "Category of earning activity",
-            "example": "task_completion",
-            "enum": [
-              "task_completion",
-              "challenge_win",
-              "bonus_reward",
-              "other"
-            ]
-          }
-        },
-        "required": [
-          "amount",
-          "description"
-        ]
       },
       "CreateBookmarkDto": {
         "type": "object",

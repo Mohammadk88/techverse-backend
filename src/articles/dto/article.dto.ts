@@ -239,6 +239,15 @@ export class ArticleFilterDto extends PaginationDto {
   category_id?: number;
 
   @ApiPropertyOptional({
+    description: 'Filter by category ID (camelCase alternative)',
+    example: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  categoryId?: number;
+
+  @ApiPropertyOptional({
     description: 'Filter by tag ID',
     example: 1,
   })
@@ -246,6 +255,15 @@ export class ArticleFilterDto extends PaginationDto {
   @Type(() => Number)
   @IsInt()
   tag_id?: number;
+
+  @ApiPropertyOptional({
+    description: 'Filter by tag ID (camelCase alternative)',
+    example: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  tagId?: number;
 
   @ApiPropertyOptional({
     description: 'Search in title and content',

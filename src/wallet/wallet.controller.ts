@@ -6,18 +6,19 @@ import {
   UseGuards,
   Request,
   Query,
-  ParseIntPipe,
+  Headers,
 } from '@nestjs/common';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
 import { BuyTechCoinDto, SpendTechCoinDto, EarnTechCoinDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('💰 Digital Wallet & TechCoin')
 @ApiBearerAuth()
@@ -59,36 +60,44 @@ export class WalletController {
     return this.walletService.getWallet(req.user.id);
   }
 
-  @Post('buy')
+  @Post('checkout')
   @ApiOperation({ 
-    summary: 'Purchase TechCoin',
-    description: 'Buy TechCoin using mock Stripe payment integration. 1 USD = 10 TechCoin'
+    summary: 'Create Paddle checkout session',
+    description: 'Create a Paddle checkout session to purchase TechCoin. Returns checkout URL for payment'
   })
   @ApiResponse({ 
     status: 201, 
-    description: 'TechCoin purchased successfully',
+    description: 'Checkout session created successfully',
     schema: {
       example: {
-        success: true,
-        transaction: {
-          id: 10,
-          type: 'BUY',
-          amount: 100,
-          description: 'Purchased 100 TechCoin for $10.00',
-          stripePaymentId: 'pi_mock_12345',
-          created_at: '2025-07-16T12:30:00Z'
-        },
-        wallet: {
-          tech_coin: 350,
-          xp: 850
-        }
+        checkout_url: 'https://buy.paddle.com/checkout/...',
+        transaction_id: 'txn_...',
+        amount: 100,
+        price: 1.00
       }
     }
   })
-  @ApiResponse({ status: 400, description: 'Payment failed or invalid amount' })
+  @ApiResponse({ status: 400, description: 'Invalid amount or configuration error' })
   @ApiResponse({ status: 401, description: 'Unauthorized - JWT token required' })
-  async buyTechCoin(@Request() req: any, @Body() buyDto: BuyTechCoinDto) {
-    return this.walletService.buyTechCoin(req.user.id, buyDto);
+  async createCheckout(@Request() req: any, @Body() buyDto: BuyTechCoinDto) {
+    return this.walletService.createPaddleCheckoutSession(req.user.id, buyDto);
+  }
+
+  @Post('webhook')
+  @Public()
+  @ApiOperation({ 
+    summary: 'Paddle webhook endpoint',
+    description: 'Handle Paddle webhook events for payment processing'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Webhook processed successfully'
+  })
+  async paddleWebhook(
+    @Body() body: string,
+    @Headers('paddle-signature') signature: string,
+  ) {
+    return this.walletService.handlePaddleWebhook(body, signature);
   }
 
   @Post('spend')
@@ -249,5 +258,49 @@ export class WalletController {
 
     const wallet = await this.walletService.getOrCreateWallet(req.user.id);
     return { balance: wallet.tech_coin, xp: wallet.xp };
+  }
+
+  @Get('xp/next-role')
+  @ApiOperation({
+    summary: 'Get next role information',
+    description: 'Get information about the next role and XP required to reach it',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Next role information retrieved successfully',
+    schema: {
+      example: {
+        currentRole: 'MEMBER',
+        currentXP: 850,
+        nextRole: 'JOURNALIST',
+        xpRequired: 150,
+        progress: 85,
+      },
+    },
+  })
+  async getNextRoleInfo(@Request() req: any) {
+    return this.walletService.getNextRoleInfo(req.user.id);
+  }
+
+  @Get('xp/thresholds')
+  @ApiOperation({
+    summary: 'Get XP thresholds for all roles',
+    description: 'Get the XP requirements for each role level',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'XP thresholds retrieved successfully',
+    schema: {
+      example: {
+        GUEST: 0,
+        MEMBER: 0,
+        JOURNALIST: 1000,
+        THINKER: 3000,
+        BARISTA: 7000,
+      },
+    },
+  })
+  getXPThresholds() {
+    return this.walletService.getXPThresholds();
   }
 }

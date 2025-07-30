@@ -5,11 +5,15 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { WalletService } from '../wallet/wallet.service';
 import { PaginationDto, PaginatedResult } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class FollowService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly walletService: WalletService,
+  ) {}
 
   async followUser(follower_id: number, following_id: number) {
     // Prevent self-following
@@ -47,6 +51,18 @@ export class FollowService {
         following_id: following_id,
       },
     });
+
+    // Award XP to both users
+    try {
+      // Award XP to the follower for following someone
+      await this.walletService.awardXPForActivity(follower_id, 'FOLLOW_USER');
+      
+      // Award XP to the user being followed for gaining a follower
+      await this.walletService.awardXPForActivity(following_id, 'GET_FOLLOWED');
+    } catch (error) {
+      console.error('Failed to award XP for follow action:', error);
+      // Don't fail the follow operation if XP fails
+    }
 
     return {
       success: true,
